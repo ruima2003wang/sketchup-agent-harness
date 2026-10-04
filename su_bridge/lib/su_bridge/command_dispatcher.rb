@@ -343,7 +343,8 @@ module SuBridge
         elapsed_ms: 0,
         bridge_info: {
           version: SuBridge::VERSION,
-          socket_path: SuBridge::SOCKET_PATH,
+          host: SuBridge::BRIDGE_HOST,
+          port: SuBridge::BRIDGE_PORT,
           supported_operations: OPERATION_HANDLERS.keys.sort,
           entity_modifying_operations: ENTITY_MODIFYING_OPERATIONS.to_a.sort,
         },

@@ -13,10 +13,17 @@ from mcp_server.bridge_install import (
     installed_sketchup_app_versions,
     installed_sketchup_plugin_dirs,
     quarantine_entries,
+    resolve_platform,
     sketchup_app_path,
     sketchup_template_path,
 )
-from mcp_server.bridge.socket_bridge import BridgeConfig, SocketBridge
+from mcp_server.bridge.socket_bridge import (
+    DEFAULT_BRIDGE_HOST,
+    DEFAULT_BRIDGE_PORT,
+    BridgeConfig,
+    SocketBridge,
+    bridge_endpoint_available,
+)
 from mcp_server.protocol.jsonrpc import JsonRpcRequest
 from mcp_server.resources.design_rules_schema import (
     DESIGNER_PROFILE_ENV,
@@ -24,7 +31,7 @@ from mcp_server.resources.design_rules_schema import (
     load_designer_profile_rules,
 )
 from mcp_server.runtime_skills import runtime_skill_status
-from mcp_server.smoke import DEFAULT_BRIDGE_SOCKET, validate_project
+from mcp_server.smoke import validate_project
 
 
 def check(
@@ -71,19 +78,24 @@ def console_script_check(command: str) -> dict[str, Any]:
     )
 
 
-def bridge_socket_check(socket_path: str = DEFAULT_BRIDGE_SOCKET) -> dict[str, Any]:
-    """Check whether the live bridge socket exists."""
-    path = Path(socket_path)
+def bridge_socket_check(
+    socket_path: str | None = None,
+    host: str = DEFAULT_BRIDGE_HOST,
+    port: int = DEFAULT_BRIDGE_PORT,
+) -> dict[str, Any]:
+    """Check whether the live bridge endpoint is reachable."""
+    available = bridge_endpoint_available(host=host, port=port, socket_path=socket_path)
+    endpoint = str(socket_path) if socket_path else f"tcp://{host}:{port}"
     return check(
         "bridge_socket",
-        path.exists(),
-        {"path": str(path)},
+        available,
+        {"endpoint": endpoint},
         severity="warning",
         message=(
             None
-            if path.exists()
+            if available
             else (
-                "SketchUp bridge socket is not available. Run `sketchup-agent "
+                "SketchUp bridge endpoint is not available. Run `sketchup-agent "
                 "launch-bridge`; if SketchUp shows an update prompt, rerun with "
                 "`--suppress-update-check`."
             )
@@ -92,17 +104,20 @@ def bridge_socket_check(socket_path: str = DEFAULT_BRIDGE_SOCKET) -> dict[str, A
 
 
 def bridge_runtime_capability_check(
-    socket_path: str = DEFAULT_BRIDGE_SOCKET,
+    socket_path: str | None = None,
+    host: str = DEFAULT_BRIDGE_HOST,
+    port: int = DEFAULT_BRIDGE_PORT,
 ) -> dict[str, Any]:
     """Check whether the live bridge supports required non-mutating operations."""
-    path = Path(socket_path)
-    if not path.exists():
+    available = bridge_endpoint_available(host=host, port=port, socket_path=socket_path)
+    endpoint = str(socket_path) if socket_path else f"tcp://{host}:{port}"
+    if not available:
         return check(
             "bridge_runtime_capabilities",
             True,
-            {"path": str(path), "skipped": True},
+            {"endpoint": endpoint, "skipped": True},
             severity="info",
-            message="Skipped because the SketchUp bridge socket is not available.",
+            message="Skipped because the SketchUp bridge endpoint is not available.",
         )
 
     required_operations = {
@@ -112,7 +127,9 @@ def bridge_runtime_capability_check(
     operation_results: dict[str, dict[str, Any]] = {}
     bridge = SocketBridge(
         BridgeConfig(
-            socket_path=str(path),
+            socket_path=str(socket_path) if socket_path else None,
+            host=host,
+            port=port,
             connect_timeout=1.0,
             recv_timeout=5.0,
             max_retries=1,
@@ -149,7 +166,7 @@ def bridge_runtime_capability_check(
                 "bridge_runtime_capabilities",
                 ok,
                 {
-                    "path": str(path),
+                    "endpoint": endpoint,
                     "bridge_info": bridge_info,
                     "required_operations": operation_results,
                 },
@@ -184,7 +201,7 @@ def bridge_runtime_capability_check(
         return check(
             "bridge_runtime_capabilities",
             False,
-            {"path": str(path), "error": str(error)},
+            {"endpoint": endpoint, "error": str(error)},
             severity="warning",
             message="Could not query the live SketchUp bridge runtime.",
         )
@@ -196,7 +213,7 @@ def bridge_runtime_capability_check(
         "bridge_runtime_capabilities",
         ok,
         {
-            "path": str(path),
+            "endpoint": endpoint,
             "required_operations": operation_results,
         },
         severity="warning",
@@ -216,12 +233,16 @@ def sketchup_install_check(
     plugins_dir: str | Path | None = None,
 ) -> dict[str, Any]:
     """Check detected or requested SketchUp plugin installation paths."""
-    detected_dirs = installed_sketchup_plugin_dirs()
-    installed_app_versions = installed_sketchup_app_versions()
+    host_platform = resolve_platform()
+    detected_dirs = installed_sketchup_plugin_dirs(platform=host_platform)
+    installed_app_versions = installed_sketchup_app_versions(platform=host_platform)
     target_root = (
         Path(plugins_dir).expanduser().resolve()
         if plugins_dir
-        else default_plugins_dir(sketchup_version).expanduser().resolve()
+        else default_plugins_dir(
+            sketchup_version,
+            platform=host_platform,
+        ).expanduser().resolve()
     )
     bridge_dir = target_root / "su_bridge"
     loader_file = target_root / LOADER_FILENAME
@@ -245,14 +266,14 @@ def sketchup_install_check(
 
 def sketchup_app_check(sketchup_version: str | None = None) -> dict[str, Any]:
     """Check whether SketchUp can be launched in a bridge-friendly way."""
-    app_path = sketchup_app_path(sketchup_version)
+    app_path = sketchup_app_path(sketchup_version, platform=resolve_platform())
     if app_path is None:
         return check(
             "sketchup_app",
             False,
             {"sketchup_version": sketchup_version},
             severity="warning",
-            message="SketchUp app was not detected in /Applications.",
+            message="SketchUp was not detected on this machine.",
         )
 
     quarantine = quarantine_entries(app_path)
@@ -358,7 +379,9 @@ def run_doctor(
     project_path: str | Path | None = None,
     sketchup_version: str | None = None,
     plugins_dir: str | Path | None = None,
-    socket_path: str = DEFAULT_BRIDGE_SOCKET,
+    socket_path: str | None = None,
+    host: str = DEFAULT_BRIDGE_HOST,
+    port: int = DEFAULT_BRIDGE_PORT,
 ) -> dict[str, Any]:
     """Run environment checks for the installed harness and optional project."""
     checks = [
@@ -368,8 +391,8 @@ def run_doctor(
         designer_profile_check(),
         sketchup_app_check(sketchup_version),
         sketchup_install_check(sketchup_version=sketchup_version, plugins_dir=plugins_dir),
-        bridge_socket_check(socket_path),
-        bridge_runtime_capability_check(socket_path),
+        bridge_socket_check(socket_path, host=host, port=port),
+        bridge_runtime_capability_check(socket_path, host=host, port=port),
     ]
     project_validation = project_check(project_path)
     if project_validation is not None:

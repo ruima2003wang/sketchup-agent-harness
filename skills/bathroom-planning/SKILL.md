@@ -24,7 +24,7 @@ Use `execute_bathroom_plan` when:
 
 - The user explicitly wants the plan sent to SketchUp.
 - The SketchUp Ruby bridge is running.
-- The local socket `/tmp/su_bridge.sock` is expected to be available.
+- The loopback bridge endpoint (`tcp://127.0.0.1:9877`) is expected to be available.
 
 If the user asks to execute and the bridge is not available, call
 `launch_sketchup_bridge` first. Execute only when it returns `socket_ready:

@@ -1,17 +1,14 @@
 #!/bin/bash
-# Cleanup script for su_bridge - removes socket and resets Ruby state
+# Cleanup script for su_bridge - resets Ruby state for the TCP bridge
 
-SOCKET_PATH="/tmp/su_bridge.sock"
+BRIDGE_HOST="${SU_BRIDGE_HOST:-127.0.0.1}"
+BRIDGE_PORT="${SU_BRIDGE_PORT:-9877}"
 
 echo "=== su_bridge Cleanup Script ==="
 
-# Remove socket file
-if [ -e "$SOCKET_PATH" ]; then
-    echo "Removing socket: $SOCKET_PATH"
-    rm -f "$SOCKET_PATH"
-else
-    echo "Socket not found (OK if not running)"
-fi
+# The bridge listens on loopback TCP; the port is released when the server
+# stops, so there is no socket file to remove.
+echo "TCP endpoint: tcp://$BRIDGE_HOST:$BRIDGE_PORT"
 
 # For SketchUp plugin cache clearing, user needs to run the Ruby script
 # inside SketchUp's Ruby Console
@@ -24,7 +21,7 @@ echo ""
 echo "This will:"
 echo "  - Stop the running server"
 echo "  - Remove all SuBridge constants (allow clean reload)"
-echo "  - Delete the socket file"
+echo "  - Release the TCP endpoint"
 echo ""
 echo "Then restart with:"
 echo "   SuBridge.start"

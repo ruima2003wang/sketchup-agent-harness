@@ -1,6 +1,7 @@
 """Tests for local smoke checks."""
 
 import json
+import socket
 
 from mcp_server.project_init import init_project
 from mcp_server.project_assets import refresh_project_asset_lock
@@ -124,16 +125,20 @@ def test_run_live_smoke_syncs_execution_results(monkeypatch, tmp_path):
         }
 
     monkeypatch.setattr(smoke_module, "execute_bridge_operations", fake_execute)
-    socket_path = tmp_path / "su_bridge.sock"
-    socket_path.touch()
+    listener = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    listener.bind(("127.0.0.1", 0))
+    listener.listen(1)
+    port = listener.getsockname()[1]
     project_path = tmp_path / "smoke"
 
     result = run_smoke(
         project_path,
         overwrite=True,
         with_bridge=True,
-        socket_path=str(socket_path),
+        host="127.0.0.1",
+        port=port,
     )
+    listener.close()
     design_model = json.loads((project_path / "design_model.json").read_text())
 
     assert result["ok"] is True
@@ -175,8 +180,22 @@ def test_component_refs_from_model_includes_lighting():
     }
 
 
-def test_bridge_socket_check_reports_missing_socket(tmp_path):
-    result = bridge_socket_check(str(tmp_path / "missing.sock"))
+def test_bridge_socket_check_reports_missing_endpoint():
+    # Port 1 is not expected to be listening during tests.
+    result = bridge_socket_check(host="127.0.0.1", port=1)
 
     assert result["ok"] is False
     assert "not available" in result["errors"][0]
+
+
+def test_bridge_socket_check_reports_live_tcp_endpoint():
+    listener = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    listener.bind(("127.0.0.1", 0))
+    listener.listen(1)
+    port = listener.getsockname()[1]
+    try:
+        result = bridge_socket_check(host="127.0.0.1", port=port)
+    finally:
+        listener.close()
+
+    assert result["ok"] is True

@@ -324,12 +324,10 @@ def test_launch_bridge_opens_model_and_waits_for_socket(monkeypatch, tmp_path):
     template = app / "Contents" / "Resources" / "en" / "Templates" / "Temp01b - Simple.skp"
     template.parent.mkdir(parents=True)
     template.write_text("template", encoding="utf-8")
-    socket_path = tmp_path / "su_bridge.sock"
     calls = []
 
     def fake_run(command, check=False, capture_output=True, text=True):
         calls.append(command)
-        socket_path.write_text("", encoding="utf-8")
 
         class Result:
             returncode = 0
@@ -340,6 +338,10 @@ def test_launch_bridge_opens_model_and_waits_for_socket(monkeypatch, tmp_path):
 
     monkeypatch.setattr("mcp_server.bridge_install.subprocess.run", fake_run)
     monkeypatch.setattr("mcp_server.bridge_install.quarantine_entries", lambda path: [])
+    monkeypatch.setattr(
+        "mcp_server.bridge_install.bridge_endpoint_available",
+        lambda **kwargs: True,
+    )
     preferences_dir = (
         tmp_path
         / "Library"
@@ -359,17 +361,18 @@ def test_launch_bridge_opens_model_and_waits_for_socket(monkeypatch, tmp_path):
     result = launch_bridge(
         sketchup_version="2024",
         app_path=app,
-        socket_path=socket_path,
         timeout=1,
         suppress_app_update_check=True,
+        platform="macos",
     )
 
     assert result["socket_ready"] is True
+    assert result["platform"] == "macos"
     assert result["copied_template"] is True
     assert result["sketchup_version"] == "2024"
-    assert result["update_check_suppressed"]["preferences_dir"].endswith(
-        "SketchUp 2024/SketchUp"
-    )
+    suppressed_dir = Path(result["update_check_suppressed"]["preferences_dir"])
+    assert suppressed_dir.parent.name == "SketchUp 2024"
+    assert suppressed_dir.name == "SketchUp"
     assert calls[-1][:3] == ["open", "-a", str(app.resolve())]
 
 
@@ -378,7 +381,6 @@ def test_launch_bridge_reports_timeout_blockers(monkeypatch, tmp_path):
     template = app / "Contents" / "Resources" / "en" / "Templates" / "Temp01b - Simple.skp"
     template.parent.mkdir(parents=True)
     template.write_text("template", encoding="utf-8")
-    socket_path = tmp_path / "missing.sock"
 
     class Result:
         returncode = 0
@@ -390,16 +392,57 @@ def test_launch_bridge_reports_timeout_blockers(monkeypatch, tmp_path):
         lambda *args, **kwargs: Result(),
     )
     monkeypatch.setattr("mcp_server.bridge_install.quarantine_entries", lambda path: [])
+    monkeypatch.setattr(
+        "mcp_server.bridge_install.bridge_endpoint_available",
+        lambda **kwargs: False,
+    )
 
     result = launch_bridge(
         app_path=app,
-        socket_path=socket_path,
         timeout=0,
+        platform="macos",
     )
 
     assert result["socket_ready"] is False
     assert result["sketchup_version"] == "2024"
     assert any("welcome screen" in blocker for blocker in result["possible_blockers"])
+
+
+def test_launch_bridge_windows_uses_exe_and_tcp(monkeypatch, tmp_path):
+    exe = tmp_path / "Program Files" / "SketchUp" / "SketchUp 2022" / "SketchUp.exe"
+    exe.parent.mkdir(parents=True)
+    exe.write_text("exe", encoding="utf-8")
+    template = exe.parent / "resources" / "en-US" / "Templates" / "Temp01b - Simple.skp"
+    template.parent.mkdir(parents=True)
+    template.write_text("template", encoding="utf-8")
+    popen_calls = []
+
+    class FakePopen:
+        def __init__(self, command):
+            popen_calls.append(command)
+
+    def fail_run(*args, **kwargs):
+        raise AssertionError("Windows launch must not use `open`")
+
+    monkeypatch.setattr("mcp_server.bridge_install.subprocess.Popen", FakePopen)
+    monkeypatch.setattr("mcp_server.bridge_install.subprocess.run", fail_run)
+    monkeypatch.setattr(
+        "mcp_server.bridge_install.bridge_endpoint_available",
+        lambda **kwargs: True,
+    )
+
+    result = launch_bridge(
+        sketchup_version="2022",
+        app_path=exe,
+        timeout=1,
+        platform="windows",
+    )
+
+    assert result["socket_ready"] is True
+    assert result["platform"] == "windows"
+    assert result["endpoint"] == "tcp://127.0.0.1:9877"
+    assert popen_calls[-1][0] == str(exe.resolve())
+    assert popen_calls[-1][1] == result["model_path"]
 
 
 def test_install_bridge_dry_run_does_not_copy(tmp_path):

@@ -1258,12 +1258,12 @@ async def launch_sketchup_bridge(
     sketchup_version: str | None = None,
     app_path: str | None = None,
     model_path: str | None = None,
-    socket_path: str = "/tmp/su_bridge.sock",
+    socket_path: str | None = None,
     timeout: float = 90.0,
     clear_quarantine: bool = False,
     suppress_update_check: bool = False,
 ) -> TextContent:
-    """Open SketchUp with a model window and wait for the Ruby bridge socket."""
+    """Open SketchUp with a model window and wait for the Ruby bridge endpoint."""
     try:
         result = launch_bridge(
             sketchup_version=sketchup_version,

@@ -4,8 +4,10 @@
 # Hot-reload script for su_bridge - reloads without restart
 # Use this when you want to pick up code changes without restarting SketchUp
 
-SOCKET_PATH = "/tmp/su_bridge.sock"
-SU_BRIDGE_PATH = "/Users/avenir/Code/personal/sketchup-agent-harness/su_bridge/lib/su_bridge.rb"
+BRIDGE_HOST = ENV["SU_BRIDGE_HOST"] || "127.0.0.1"
+BRIDGE_PORT = (ENV["SU_BRIDGE_PORT"] || "9877").to_i
+SU_BRIDGE_PATH = ENV["SU_BRIDGE_PATH"] ||
+                 File.expand_path("../su_bridge/lib/su_bridge.rb", __dir__)
 
 puts "[su_bridge] Hot-reload starting..."
 
@@ -16,11 +18,8 @@ if defined?(SuBridge) && SuBridge.respond_to?(:stop)
   sleep 0.3
 end
 
-# Step 2: Delete socket immediately
-if File.exist?(SOCKET_PATH)
-  File.delete(SOCKET_PATH) rescue nil
-  puts "[su_bridge] Deleted socket"
-end
+# Step 2: The TCP listener is released by stop(); no socket file to delete.
+puts "[su_bridge] TCP endpoint released: tcp://#{BRIDGE_HOST}:#{BRIDGE_PORT}"
 
 # Step 3: Clear ALL su_bridge related constants
 # This is aggressive but necessary for true reload

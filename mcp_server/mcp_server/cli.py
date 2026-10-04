@@ -5,6 +5,7 @@ import asyncio
 import json
 import sys
 
+from mcp_server.bridge.socket_bridge import DEFAULT_BRIDGE_HOST, DEFAULT_BRIDGE_PORT
 from mcp_server.bridge_install import install_bridge, launch_bridge
 from mcp_server.doctor import run_doctor
 from mcp_server.resources.design_rules_schema import (
@@ -959,7 +960,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     bridge_parser.add_argument(
         "--plugins-dir",
-        help="SketchUp Plugins directory. Defaults to the newest detected macOS SketchUp install.",
+        help="SketchUp Plugins directory. Defaults to the newest detected SketchUp install.",
     )
     bridge_parser.add_argument(
         "--source-dir",
@@ -967,7 +968,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     bridge_parser.add_argument(
         "--sketchup-version",
-        help="SketchUp version for the default macOS Plugins path, for example 2024.",
+        help="SketchUp version for the default Plugins path, for example 2022.",
     )
     bridge_parser.add_argument(
         "--force",
@@ -982,15 +983,15 @@ def build_parser() -> argparse.ArgumentParser:
 
     launch_bridge_parser = subparsers.add_parser(
         "launch-bridge",
-        help="Open SketchUp with a model window and wait for the Ruby bridge socket",
+        help="Open SketchUp with a model window and wait for the Ruby bridge",
     )
     launch_bridge_parser.add_argument(
         "--sketchup-version",
-        help="SketchUp version to launch, for example 2024.",
+        help="SketchUp version to launch, for example 2022.",
     )
     launch_bridge_parser.add_argument(
         "--app-path",
-        help="Explicit SketchUp.app path. Defaults to the newest detected app.",
+        help="Explicit SketchUp.app or SketchUp.exe path. Defaults to the newest detected app.",
     )
     launch_bridge_parser.add_argument(
         "--model-path",
@@ -998,14 +999,25 @@ def build_parser() -> argparse.ArgumentParser:
     )
     launch_bridge_parser.add_argument(
         "--socket-path",
-        default="/tmp/su_bridge.sock",
-        help="SketchUp bridge socket path.",
+        default=None,
+        help="Optional Unix domain socket path (macOS/Linux only). Defaults to TCP.",
+    )
+    launch_bridge_parser.add_argument(
+        "--host",
+        default=DEFAULT_BRIDGE_HOST,
+        help="Loopback bridge host (default: 127.0.0.1).",
+    )
+    launch_bridge_parser.add_argument(
+        "--port",
+        type=int,
+        default=DEFAULT_BRIDGE_PORT,
+        help="Loopback bridge port (default: 9877).",
     )
     launch_bridge_parser.add_argument(
         "--timeout",
         type=float,
         default=90.0,
-        help="Seconds to wait for the bridge socket.",
+        help="Seconds to wait for the bridge endpoint.",
     )
     launch_bridge_parser.add_argument(
         "--clear-quarantine",
@@ -1062,12 +1074,23 @@ def build_parser() -> argparse.ArgumentParser:
     )
     doctor_parser.add_argument(
         "--sketchup-version",
-        help="SketchUp version for the default macOS Plugins path, for example 2024.",
+        help="SketchUp version for the default Plugins path, for example 2022.",
     )
     doctor_parser.add_argument(
         "--socket-path",
-        default="/tmp/su_bridge.sock",
-        help="SketchUp bridge socket path.",
+        default=None,
+        help="Optional Unix domain socket path (macOS/Linux only). Defaults to TCP.",
+    )
+    doctor_parser.add_argument(
+        "--host",
+        default=DEFAULT_BRIDGE_HOST,
+        help="Loopback bridge host (default: 127.0.0.1).",
+    )
+    doctor_parser.add_argument(
+        "--port",
+        type=int,
+        default=DEFAULT_BRIDGE_PORT,
+        help="Loopback bridge port (default: 9877).",
     )
 
     release_parser = subparsers.add_parser(
@@ -1529,6 +1552,8 @@ def main(argv: list[str] | None = None) -> int:
                 app_path=args.app_path,
                 model_path=args.model_path,
                 socket_path=args.socket_path,
+                host=args.host,
+                port=args.port,
                 timeout=args.timeout,
                 clear_app_quarantine=args.clear_quarantine,
                 suppress_app_update_check=args.suppress_update_check,
@@ -1551,6 +1576,8 @@ def main(argv: list[str] | None = None) -> int:
                 plugins_dir=args.plugins_dir,
                 sketchup_version=args.sketchup_version,
                 socket_path=args.socket_path,
+                host=args.host,
+                port=args.port,
             )
             print(json.dumps(result, ensure_ascii=False, indent=2))
             return 0 if result["ok"] else 1

@@ -4,8 +4,9 @@
 # Cleanup script for su_bridge Ruby plugin
 # CRITICAL: Must stop server BEFORE removing constants
 
-SOCKET_PATH = "/tmp/su_bridge.sock"
-SU_BRIDGE_ROOT = "/Users/avenir/Code/personal/sketchup-agent-harness/su_bridge/lib"
+BRIDGE_HOST = ENV["SU_BRIDGE_HOST"] || "127.0.0.1"
+BRIDGE_PORT = (ENV["SU_BRIDGE_PORT"] || "9877").to_i
+SU_BRIDGE_ROOT = ENV["SU_BRIDGE_ROOT"] || File.expand_path("../su_bridge/lib", __dir__)
 
 puts "[su_bridge] Cleanup starting..."
 
@@ -17,13 +18,9 @@ if defined?(SuBridge) && SuBridge.respond_to?(:stop)
   sleep 0.5
 end
 
-# Step 2: Remove socket file immediately
-if File.exist?(SOCKET_PATH)
-  puts "[su_bridge] Removing socket: #{SOCKET_PATH}"
-  File.delete(SOCKET_PATH)
-else
-  puts "[su_bridge] Socket not found"
-end
+# Step 2: The TCP listener is released when the server stops; no socket file
+# to remove for a loopback TCP transport.
+puts "[su_bridge] TCP endpoint released: tcp://#{BRIDGE_HOST}:#{BRIDGE_PORT}"
 
 # Step 3: Clear Ruby load cache
 $LOADED_FEATURES.reject! { |f| f.include?("su_bridge") || f.include?("su_bridge/lib") }

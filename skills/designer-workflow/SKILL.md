@@ -173,7 +173,7 @@ SketchUp template entities may be present.
 Do not use clean replay when the designer is intentionally preserving unrelated
 manual SketchUp geometry on managed layers.
 
-Before calling it, confirm the bridge is available at `/tmp/su_bridge.sock`.
+Before calling it, confirm the bridge is available at `tcp://127.0.0.1:9877`.
 If execution fails because SketchUp is not running, retry the startup path once
 with `launch_sketchup_bridge`; then report any environment blockers and keep the
 structured plan available.

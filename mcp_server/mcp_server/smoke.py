@@ -5,6 +5,11 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
+from mcp_server.bridge.socket_bridge import (
+    DEFAULT_BRIDGE_HOST,
+    DEFAULT_BRIDGE_PORT,
+    bridge_endpoint_available,
+)
 from mcp_server.project_init import (
     PROJECT_CLAUDE_GUIDANCE_FILENAME,
     PROJECT_CODEX_GUIDANCE_FILENAME,
@@ -35,7 +40,8 @@ from mcp_server.tools.project_executor import (
 from mcp_server.tools.trace_executor import execute_bridge_operations
 
 DEFAULT_SMOKE_PROJECT = "/tmp/sketchup-agent-smoke"
-DEFAULT_BRIDGE_SOCKET = "/tmp/su_bridge.sock"
+# The bridge is a loopback TCP endpoint by default so it works on Windows.
+# DEFAULT_BRIDGE_HOST / DEFAULT_BRIDGE_PORT come from the socket bridge module.
 
 
 def check_result(
@@ -245,14 +251,19 @@ def validate_project(project_path: str | Path) -> dict[str, Any]:
     }
 
 
-def bridge_socket_check(socket_path: str = DEFAULT_BRIDGE_SOCKET) -> dict[str, Any]:
-    """Check whether the SketchUp bridge socket exists."""
-    path = Path(socket_path)
+def bridge_socket_check(
+    socket_path: str | None = None,
+    host: str = DEFAULT_BRIDGE_HOST,
+    port: int = DEFAULT_BRIDGE_PORT,
+) -> dict[str, Any]:
+    """Check whether the SketchUp bridge endpoint is reachable."""
+    available = bridge_endpoint_available(host=host, port=port, socket_path=socket_path)
+    endpoint = str(socket_path) if socket_path else f"tcp://{host}:{port}"
     return check_result(
         "bridge_socket",
-        path.exists(),
-        {"path": str(path)},
-        [] if path.exists() else ["SketchUp bridge socket is not available."],
+        available,
+        {"endpoint": endpoint},
+        [] if available else ["SketchUp bridge endpoint is not available."],
     )
 
 
@@ -261,7 +272,9 @@ def run_smoke(
     template: str = "bathroom",
     overwrite: bool = False,
     with_bridge: bool = False,
-    socket_path: str = DEFAULT_BRIDGE_SOCKET,
+    socket_path: str | None = None,
+    host: str = DEFAULT_BRIDGE_HOST,
+    port: int = DEFAULT_BRIDGE_PORT,
 ) -> dict[str, Any]:
     """Run a deterministic local smoke check."""
     root = Path(project_path).expanduser().resolve()
@@ -311,7 +324,7 @@ def run_smoke(
     result["checks"].append(check_result("headless_bathroom_plan", plan_ok))
 
     if with_bridge:
-        socket_check = bridge_socket_check(socket_path)
+        socket_check = bridge_socket_check(socket_path, host=host, port=port)
         result["checks"].append(socket_check)
         if socket_check["ok"]:
             try:

@@ -1,6 +1,7 @@
 """Tests for environment doctoring."""
 
 import json
+import socket
 
 from mcp_server.cli import main
 from mcp_server.doctor import bridge_runtime_capability_check, run_doctor, sketchup_app_check
@@ -19,7 +20,8 @@ def test_doctor_reports_project_validation(tmp_path):
     result = run_doctor(
         project_path=project_path,
         plugins_dir=tmp_path / "missing-plugins",
-        socket_path=str(tmp_path / "missing.sock"),
+        host="127.0.0.1",
+        port=1,
     )
 
     project_check = next(check for check in result["checks"] if check["name"] == "project_validation")
@@ -47,7 +49,8 @@ def test_doctor_warns_on_modified_runtime_skills(tmp_path):
     result = run_doctor(
         project_path=project_path,
         plugins_dir=tmp_path / "missing-plugins",
-        socket_path=str(tmp_path / "missing.sock"),
+        host="127.0.0.1",
+        port=1,
     )
     skills_check = next(check for check in result["checks"] if check["name"] == "runtime_skills")
 
@@ -67,7 +70,8 @@ def test_doctor_reports_configured_designer_profile(monkeypatch, tmp_path):
 
     result = run_doctor(
         plugins_dir=tmp_path / "missing-plugins",
-        socket_path=str(tmp_path / "missing.sock"),
+        host="127.0.0.1",
+        port=1,
     )
     profile_check = next(check for check in result["checks"] if check["name"] == "designer_profile")
 
@@ -82,7 +86,8 @@ def test_doctor_fails_on_missing_configured_designer_profile(monkeypatch, tmp_pa
 
     result = run_doctor(
         plugins_dir=tmp_path / "missing-plugins",
-        socket_path=str(tmp_path / "missing.sock"),
+        host="127.0.0.1",
+        port=1,
     )
     profile_check = next(check for check in result["checks"] if check["name"] == "designer_profile")
 
@@ -99,7 +104,8 @@ def test_doctor_fails_on_invalid_project(tmp_path):
     result = run_doctor(
         project_path=project_path,
         plugins_dir=tmp_path / "missing-plugins",
-        socket_path=str(tmp_path / "missing.sock"),
+        host="127.0.0.1",
+        port=1,
     )
 
     project_check = next(check for check in result["checks"] if check["name"] == "project_validation")
@@ -114,7 +120,10 @@ def test_sketchup_app_check_warns_on_quarantined_app(monkeypatch, tmp_path):
     template = app / "Contents" / "Resources" / "en" / "Templates" / "Temp01b - Simple.skp"
     template.parent.mkdir(parents=True)
     template.write_text("template", encoding="utf-8")
-    monkeypatch.setattr("mcp_server.doctor.sketchup_app_path", lambda version: app)
+    monkeypatch.setattr(
+        "mcp_server.doctor.sketchup_app_path",
+        lambda version, platform=None: app,
+    )
     monkeypatch.setattr(
         "mcp_server.doctor.quarantine_entries",
         lambda path: [f"{path}: com.apple.quarantine: test"],
@@ -128,8 +137,16 @@ def test_sketchup_app_check_warns_on_quarantined_app(monkeypatch, tmp_path):
     assert "launch-bridge --clear-quarantine" in result["message"]
 
 
-def test_bridge_runtime_capability_check_skips_missing_socket(tmp_path):
-    result = bridge_runtime_capability_check(socket_path=str(tmp_path / "missing.sock"))
+def _live_tcp_listener():
+    """Start a loopback TCP listener and return (listener, port)."""
+    listener = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    listener.bind(("127.0.0.1", 0))
+    listener.listen(1)
+    return listener, listener.getsockname()[1]
+
+
+def test_bridge_runtime_capability_check_skips_missing_endpoint(tmp_path):
+    result = bridge_runtime_capability_check(host="127.0.0.1", port=1)
 
     assert result["ok"] is True
     assert result["severity"] == "info"
@@ -138,14 +155,13 @@ def test_bridge_runtime_capability_check_skips_missing_socket(tmp_path):
 
 def test_bridge_runtime_capability_check_reports_supported_operations(
     monkeypatch,
-    tmp_path,
 ):
-    socket_path = tmp_path / "su_bridge.sock"
-    socket_path.write_text("", encoding="utf-8")
+    listener, port = _live_tcp_listener()
 
     class FakeBridge:
         def __init__(self, config):
             self.config = config
+            assert config.port == port
 
         def send(self, data):
             operation_type = data["params"]["operation_type"]
@@ -168,7 +184,10 @@ def test_bridge_runtime_capability_check_reports_supported_operations(
 
     monkeypatch.setattr("mcp_server.doctor.SocketBridge", FakeBridge)
 
-    result = bridge_runtime_capability_check(socket_path=str(socket_path))
+    try:
+        result = bridge_runtime_capability_check(host="127.0.0.1", port=port)
+    finally:
+        listener.close()
 
     assert result["ok"] is True
     assert result["details"]["bridge_info"]["version"] == "1.0.0"
@@ -178,10 +197,8 @@ def test_bridge_runtime_capability_check_reports_supported_operations(
 
 def test_bridge_runtime_capability_check_reports_missing_advertised_operation(
     monkeypatch,
-    tmp_path,
 ):
-    socket_path = tmp_path / "su_bridge.sock"
-    socket_path.write_text("", encoding="utf-8")
+    listener, port = _live_tcp_listener()
 
     class FakeBridge:
         def __init__(self, config):
@@ -204,7 +221,10 @@ def test_bridge_runtime_capability_check_reports_missing_advertised_operation(
 
     monkeypatch.setattr("mcp_server.doctor.SocketBridge", FakeBridge)
 
-    result = bridge_runtime_capability_check(socket_path=str(socket_path))
+    try:
+        result = bridge_runtime_capability_check(host="127.0.0.1", port=port)
+    finally:
+        listener.close()
 
     assert result["ok"] is False
     assert "Restart SketchUp" in result["message"]
@@ -215,10 +235,8 @@ def test_bridge_runtime_capability_check_reports_missing_advertised_operation(
 
 def test_bridge_runtime_capability_check_reports_stale_bridge(
     monkeypatch,
-    tmp_path,
 ):
-    socket_path = tmp_path / "su_bridge.sock"
-    socket_path.write_text("", encoding="utf-8")
+    listener, port = _live_tcp_listener()
 
     class FakeBridge:
         def __init__(self, config):
@@ -247,7 +265,10 @@ def test_bridge_runtime_capability_check_reports_stale_bridge(
 
     monkeypatch.setattr("mcp_server.doctor.SocketBridge", FakeBridge)
 
-    result = bridge_runtime_capability_check(socket_path=str(socket_path))
+    try:
+        result = bridge_runtime_capability_check(host="127.0.0.1", port=port)
+    finally:
+        listener.close()
 
     assert result["ok"] is False
     assert result["severity"] == "warning"
@@ -268,8 +289,8 @@ def test_cli_doctor_outputs_json(tmp_path, capsys):
             str(project_path),
             "--plugins-dir",
             str(tmp_path / "missing-plugins"),
-            "--socket-path",
-            str(tmp_path / "missing.sock"),
+            "--port",
+            "1",
         ]
     )
     captured = capsys.readouterr()

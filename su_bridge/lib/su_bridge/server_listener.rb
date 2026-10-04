@@ -3,18 +3,23 @@
 require "socket"
 require "json"
 require "time"
+require "su_bridge/version"
 
 module SuBridge
   # Non-blocking socket server for receiving JSON-RPC requests.
   # Uses UI.start_timer for deferred execution to keep SketchUp responsive.
   # Features automatic self-healing if socket is disrupted.
   class ServerListener
-    SOCKET_PATH = "/tmp/su_bridge.sock"
+    BRIDGE_HOST = SuBridge::BRIDGE_HOST
+    BRIDGE_PORT = SuBridge::BRIDGE_PORT
     TIMER_INTERVAL = 0.1 # seconds
     PROTOCOL_VERSION = "1.0"
     SERVER_VERSION = "1.0.0"
     RECONNECT_DELAY = 1.0 # seconds before attempting reconnect
     MAX_RECONNECT_ATTEMPTS = 3
+    # Bounded waits so a stalled loopback client cannot freeze SketchUp's UI.
+    CLIENT_READ_TIMEOUT = 5.0
+    CLIENT_WRITE_TIMEOUT = 5.0
 
     def initialize
       @socket = nil
@@ -34,7 +39,7 @@ module SuBridge
       @running = true
       @reconnect_attempts = 0
       schedule_polling
-      puts "[su_bridge] Server started on #{SOCKET_PATH}"
+      puts "[su_bridge] Server started on #{endpoint}"
     end
 
     def stop
@@ -53,19 +58,28 @@ module SuBridge
 
     private
 
+    def endpoint
+      "tcp://#{BRIDGE_HOST}:#{BRIDGE_PORT}"
+    end
+
     def setup_socket
       close_socket
 
-      # Clean up any stale socket file
-      File.delete(SOCKET_PATH) if File.exist?(SOCKET_PATH)
-
       begin
-        @socket = UNIXServer.new(SOCKET_PATH)
+        @socket = TCPServer.new(BRIDGE_HOST, BRIDGE_PORT)
         @socket.listen(5)
         @socket.autoclose = false
         @socket_valid = true
         @reconnect_attempts = 0
-        puts "[su_bridge] Socket ready on #{SOCKET_PATH}"
+        puts "[su_bridge] Socket ready on #{endpoint}"
+      rescue Errno::EADDRINUSE, Errno::EACCES => e
+        # Another process (or a previous bridge) already owns the port.
+        # Report clearly and stay alive so SketchUp is not disrupted; the
+        # reconnect loop will retry while the port is unavailable.
+        @socket_valid = false
+        @socket = nil
+        puts "[su_bridge] Port #{BRIDGE_PORT} is not available (#{e.class}: #{e.message}). " \
+             "Close the process using it or set SU_BRIDGE_PORT to a free port."
       rescue => e
         @socket_valid = false
         puts "[su_bridge] Socket setup error: #{e.message}"
@@ -125,12 +139,8 @@ module SuBridge
       return false unless @socket
       return false unless @socket_valid
 
-      # Check if socket file still exists
-      unless File.exist?(SOCKET_PATH)
-        puts "[su_bridge] Socket file missing"
-        @socket_valid = false
-        return false
-      end
+      # Treat an externally closed listener as unhealthy so it reconnects.
+      return false if @socket.closed?
 
       true
     rescue => e
@@ -172,21 +182,20 @@ module SuBridge
 
     def handle_client(client)
       begin
-        # Read request with timeout using readpartial for better control
-        request_data = client.read_nonblock(65536)
-        return if request_data.empty?
+        request_data = read_client_request(client)
+        return if request_data.nil? || request_data.empty?
 
         request = JSON.parse(request_data)
         response = process_request(request)
 
-        client.write(JSON.generate(response) + "\n")
+        write_client_response(client, response)
       rescue JSON::ParserError => e
         error_response = SuBridge::JsonRpcHandler.error_response(
           -32001,
           "Invalid JSON: #{e.message}",
           request&.dig("id")
         )
-        client.write(JSON.generate(error_response) + "\n")
+        write_client_response(client, error_response)
       rescue Errno::EPIPE, Errno::ECONNRESET, IOError => e
         # Client disconnected - normal behavior
         puts "[su_bridge] Client disconnected: #{e.message}"
@@ -198,13 +207,62 @@ module SuBridge
           nil
         )
         begin
-          client.write(JSON.generate(error_response) + "\n")
+          write_client_response(client, error_response)
         rescue => write_error
           puts "[su_bridge] Failed to write error: #{write_error.message}"
         end
       ensure
         client.close unless client.closed?
         @connected_clients.delete(client)
+      end
+    end
+
+    # Reads one newline-terminated JSON-RPC request from an accepted client.
+    # Sockets returned by accept_nonblock are non-blocking on every platform
+    # (notably Windows), so a bare read_nonblock can raise WaitReadable before
+    # the request arrives. Wait for readability with a bounded timeout instead.
+    def read_client_request(client)
+      deadline = Time.now + CLIENT_READ_TIMEOUT
+      buffer = +""
+
+      loop do
+        remaining = deadline - Time.now
+        return nil if remaining <= 0
+
+        ready = IO.select([client], nil, nil, remaining)
+        return nil unless ready
+
+        chunk = client.read_nonblock(65536, exception: false)
+        case chunk
+        when :wait_readable
+          next
+        when nil
+          break
+        else
+          buffer << chunk
+          break if buffer.include?("\n")
+        end
+      end
+
+      buffer
+    end
+
+    def write_client_response(client, response)
+      payload = JSON.generate(response) + "\n"
+      deadline = Time.now + CLIENT_WRITE_TIMEOUT
+
+      until payload.empty?
+        remaining = deadline - Time.now
+        raise IOError, "client write timed out" if remaining <= 0
+
+        prepared = IO.select(nil, [client], nil, remaining)
+        raise IOError, "client write timed out" unless prepared
+
+        written = client.write_nonblock(payload, exception: false)
+        next if written == :wait_writable
+        raise IOError, "client write failed" if written.nil?
+
+        payload = payload[written..-1] || ""
       end
     end
 

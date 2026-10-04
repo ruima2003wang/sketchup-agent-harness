@@ -58,7 +58,8 @@ RSpec.describe SuBridge::CommandDispatcher do
       result = dispatcher.send(:handle_get_bridge_info, {})
 
       expect(result[:bridge_info][:version]).to eq(SuBridge::VERSION)
-      expect(result[:bridge_info][:socket_path]).to eq(SuBridge::SOCKET_PATH)
+      expect(result[:bridge_info][:host]).to eq(SuBridge::BRIDGE_HOST)
+      expect(result[:bridge_info][:port]).to eq(SuBridge::BRIDGE_PORT)
       expect(result[:bridge_info][:supported_operations]).to include("get_bridge_info")
       expect(result[:bridge_info][:supported_operations]).to include("get_selection_info")
       expect(result[:bridge_info][:entity_modifying_operations]).to include("create_wall")

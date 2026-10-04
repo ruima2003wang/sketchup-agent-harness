@@ -1,4 +1,11 @@
-"""SketchUp Ruby bridge installation helpers."""
+"""SketchUp Ruby bridge installation helpers.
+
+The bridge runs inside SketchUp's bundled Ruby. It installs into the
+per-user SketchUp Plugins directory, which is macOS-specific on macOS
+(``~/Library/Application Support/SketchUp <ver>/SketchUp/Plugins``) and
+Windows-specific on Windows
+(``%APPDATA%\\SketchUp\\SketchUp <ver>\\SketchUp\\Plugins``).
+"""
 
 from __future__ import annotations
 
@@ -7,11 +14,18 @@ import os
 import re
 import shutil
 import subprocess
+import sys
 import tempfile
 import time
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
+
+from mcp_server.bridge.socket_bridge import (
+    DEFAULT_BRIDGE_HOST,
+    DEFAULT_BRIDGE_PORT,
+    bridge_endpoint_available,
+)
 
 
 IGNORED_BRIDGE_PATTERNS = (
@@ -23,6 +37,12 @@ IGNORED_BRIDGE_PATTERNS = (
 )
 LOADER_FILENAME = "su_bridge.rb"
 SKETCHUP_VERSION_RE = re.compile(r"\bSketchUp\s+(\d{4})\b")
+SKETCHUP_EXE_NAME = "SketchUp.exe"
+
+
+def is_windows() -> bool:
+    """Return True when running on Windows."""
+    return sys.platform.startswith("win")
 
 
 def repo_root_from_package() -> Path:
@@ -61,8 +81,16 @@ def version_sort_value(version: str | None) -> int:
 
 def installed_sketchup_app_versions(
     applications_dir: str | Path = "/Applications",
+    platform: str | None = "macos",
 ) -> list[str]:
-    """Return detected macOS SketchUp app versions, newest first."""
+    """Return detected SketchUp app versions, newest first.
+
+    Defaults to the macOS layout; pass ``platform=resolve_platform()`` to scan
+    the host platform, or ``platform="windows"`` for Windows explicitly.
+    """
+    if resolve_platform(platform) == "windows":
+        return windows_installed_sketchup_app_versions()
+
     root = Path(applications_dir).expanduser()
     if not root.exists():
         return []
@@ -84,8 +112,16 @@ def installed_sketchup_app_versions(
 def sketchup_app_path(
     sketchup_version: str | None = None,
     applications_dir: str | Path = "/Applications",
+    platform: str | None = "macos",
 ) -> Path | None:
-    """Return the detected macOS SketchUp app path, newest first by default."""
+    """Return the detected SketchUp executable path, newest first by default.
+
+    Defaults to the macOS layout; pass ``platform=resolve_platform()`` to scan
+    the host platform.
+    """
+    if resolve_platform(platform) == "windows":
+        return windows_sketchup_app_path(sketchup_version)
+
     root = Path(applications_dir).expanduser()
     if not root.exists():
         return None
@@ -108,13 +144,182 @@ def sketchup_app_path(
 
 
 def sketchup_version_from_app_path(app_path: str | Path) -> str | None:
-    """Infer the SketchUp version from a SketchUp.app path."""
+    """Infer the SketchUp version from a SketchUp.app or SketchUp.exe path."""
     path = Path(app_path).expanduser()
     for candidate in (path.parent.name, path.name):
         version = sketchup_version_from_name(candidate)
         if version is not None:
             return version
     return None
+
+
+def resolve_platform(platform: str | None = None) -> str:
+    """Resolve the target platform, defaulting to the current one.
+
+    The per-platform helpers below default to ``"macos"`` so their behavior is
+    deterministic; top-level entrypoints call this to auto-detect the host.
+    """
+    if platform:
+        return platform
+    return "windows" if is_windows() else "macos"
+
+
+def windows_program_files_dirs() -> list[Path]:
+    """Return candidate Windows Program Files roots."""
+    roots: list[Path] = []
+    for env_name in ("ProgramFiles", "ProgramW6432", "ProgramFiles(x86)"):
+        value = os.environ.get(env_name)
+        if not value:
+            continue
+        path = Path(value)
+        if path not in roots:
+            roots.append(path)
+    return roots
+
+
+def windows_installed_sketchup_app_versions(
+    program_files_dirs: list[str | Path] | None = None,
+) -> list[str]:
+    """Return detected Windows SketchUp versions, newest first."""
+    roots = (
+        [Path(root) for root in program_files_dirs]
+        if program_files_dirs is not None
+        else windows_program_files_dirs()
+    )
+    versions: set[str] = set()
+    for root in roots:
+        sketchup_root = root / "SketchUp"
+        if not sketchup_root.is_dir():
+            continue
+        for path in sketchup_root.glob("SketchUp *"):
+            version = sketchup_version_from_name(path.name)
+            if version is None:
+                continue
+            if (path / SKETCHUP_EXE_NAME).exists():
+                versions.add(version)
+    return sorted(versions, key=version_sort_value, reverse=True)
+
+
+def windows_sketchup_app_path(
+    sketchup_version: str | None = None,
+    program_files_dirs: list[str | Path] | None = None,
+) -> Path | None:
+    """Return the detected Windows SketchUp.exe path, newest first by default."""
+    roots = (
+        [Path(root) for root in program_files_dirs]
+        if program_files_dirs is not None
+        else windows_program_files_dirs()
+    )
+    candidates: list[tuple[int, str, Path]] = []
+    for root in roots:
+        sketchup_root = root / "SketchUp"
+        if not sketchup_root.is_dir():
+            continue
+        for path in sketchup_root.glob("SketchUp *"):
+            version = sketchup_version_from_name(path.name)
+            if version is None:
+                continue
+            if sketchup_version is not None and version != sketchup_version:
+                continue
+            exe = path / SKETCHUP_EXE_NAME
+            if exe.exists():
+                candidates.append((version_sort_value(version), version, exe))
+
+    if not candidates:
+        return None
+    candidates.sort(key=lambda item: (item[0], item[1]), reverse=True)
+    return candidates[0][2]
+
+
+def windows_sketchup_appdata_dir(appdata: str | Path | None = None) -> Path:
+    """Return the Windows roaming AppData directory."""
+    if appdata is not None:
+        return Path(appdata).expanduser()
+    value = os.environ.get("APPDATA")
+    if value:
+        return Path(value)
+    return Path.home() / "AppData" / "Roaming"
+
+
+def windows_sketchup_plugins_dir_for_version(
+    version: str,
+    appdata: str | Path | None = None,
+) -> Path:
+    """Return the canonical Windows Plugins directory for one SketchUp version."""
+    return (
+        windows_sketchup_appdata_dir(appdata)
+        / "SketchUp"
+        / f"SketchUp {version}"
+        / "SketchUp"
+        / "Plugins"
+    )
+
+
+def windows_installed_sketchup_plugin_dirs(
+    appdata: str | Path | None = None,
+) -> list[Path]:
+    """Return detected Windows SketchUp plugin directories, newest first."""
+    sketchup_root = windows_sketchup_appdata_dir(appdata) / "SketchUp"
+    candidates: list[Path] = []
+    if sketchup_root.is_dir():
+        for app_dir in sketchup_root.glob("SketchUp *"):
+            plugins_dir = app_dir / "SketchUp" / "Plugins"
+            if plugins_dir.is_dir():
+                candidates.append(plugins_dir)
+
+    installed_versions = windows_installed_sketchup_app_versions()
+    installed_rank = {version: index for index, version in enumerate(installed_versions)}
+
+    def sort_key(path: Path) -> tuple[int, int, int, str]:
+        version = sketchup_version_from_name(path.parent.parent.name)
+        if version in installed_rank:
+            return (0, installed_rank[version], 0, str(path))
+        return (1, 0, -version_sort_value(version), str(path))
+
+    return sorted(candidates, key=sort_key)
+
+
+def windows_default_plugins_dir(
+    sketchup_version: str | None = None,
+    appdata: str | Path | None = None,
+) -> Path:
+    """Return the target Windows SketchUp Plugins directory."""
+    if sketchup_version:
+        return windows_sketchup_plugins_dir_for_version(sketchup_version, appdata)
+
+    app_versions = windows_installed_sketchup_app_versions()
+    if app_versions:
+        return windows_sketchup_plugins_dir_for_version(app_versions[0], appdata)
+
+    detected = windows_installed_sketchup_plugin_dirs(appdata)
+    if detected:
+        return detected[0]
+
+    return windows_sketchup_plugins_dir_for_version("2022", appdata)
+
+
+def windows_sketchup_template_path(app_exe: str | Path) -> Path | None:
+    """Return a bundled Windows SketchUp template for launching a model window."""
+    install_dir = Path(app_exe).expanduser().parent
+    root = install_dir / "resources"
+    if not root.exists():
+        root = install_dir / "Resources"
+    if not root.exists():
+        return None
+
+    preferred_locales = ["en-US", "en", "zh-cn", "zh_CN", "zh-CN", "zh-TW"]
+    preferred_templates = ["Temp01b - Simple.skp", "Temp01a - Simple.skp"]
+    for locale in preferred_locales:
+        for template_name in preferred_templates:
+            candidate = root / locale / "Templates" / template_name
+            if candidate.exists():
+                return candidate
+
+    matches = sorted(root.glob("*/Templates/Temp01b - Simple.skp"))
+    if matches:
+        return matches[0]
+    matches = sorted(root.glob("*/Templates/*.skp"))
+    return matches[0] if matches else None
 
 
 def quarantine_entries(path: str | Path, limit: int = 20) -> list[str]:
@@ -249,6 +454,9 @@ def suppress_update_check(
 
 def sketchup_template_path(app_path: str | Path) -> Path | None:
     """Return a bundled SketchUp template suitable for launching a model window."""
+    if str(app_path).lower().endswith(".exe"):
+        return windows_sketchup_template_path(app_path)
+
     root = Path(app_path).expanduser() / "Contents" / "Resources"
     if not root.exists():
         return None
@@ -305,16 +513,26 @@ def launch_bridge(
     sketchup_version: str | None = None,
     app_path: str | Path | None = None,
     model_path: str | Path | None = None,
-    socket_path: str | Path = "/tmp/su_bridge.sock",
+    socket_path: str | Path | None = None,
+    host: str = DEFAULT_BRIDGE_HOST,
+    port: int = DEFAULT_BRIDGE_PORT,
     timeout: float = 90.0,
     clear_app_quarantine: bool = False,
     suppress_app_update_check: bool = False,
+    platform: str | None = None,
 ) -> dict[str, Any]:
-    """Launch SketchUp with a model file and wait for the bridge socket."""
+    """Launch SketchUp with a model file and wait for the bridge endpoint.
+
+    On macOS the app bundle is opened with ``open -a``; on Windows the
+    ``SketchUp.exe`` path is launched directly. The bridge is then awaited as
+    a loopback TCP endpoint (or a Unix socket path when ``socket_path`` is
+    given on a supporting platform).
+    """
+    resolved_platform = resolve_platform(platform)
     app = (
         Path(app_path).expanduser().resolve()
         if app_path is not None
-        else sketchup_app_path(sketchup_version)
+        else sketchup_app_path(sketchup_version, platform=resolved_platform)
     )
     if app is None or not app.exists():
         raise FileNotFoundError("SketchUp app was not found.")
@@ -326,27 +544,42 @@ def launch_bridge(
         quarantine_clear_result = clear_quarantine(app)
     quarantine_after = quarantine_entries(app)
     update_check_result = None
-    if suppress_app_update_check:
+    # Update prompts are a macOS-only blocker for non-interactive startup.
+    if suppress_app_update_check and resolved_platform != "windows":
         update_check_result = suppress_update_check(effective_version)
     launch_model = prepare_launch_model(app, model_path)
-    socket = Path(socket_path).expanduser()
 
-    completed = subprocess.run(
-        ["open", "-a", str(app), launch_model["model_path"]],
-        check=False,
-        capture_output=True,
-        text=True,
-    )
-    if completed.returncode != 0:
-        raise RuntimeError(completed.stderr.strip() or completed.stdout.strip())
+    if resolved_platform == "windows":
+        # Launch the GUI without blocking; SketchUp keeps running after this
+        # returns.
+        subprocess.Popen([str(app), launch_model["model_path"]])
+        open_returncode = None
+    else:
+        completed = subprocess.run(
+            ["open", "-a", str(app), launch_model["model_path"]],
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        if completed.returncode != 0:
+            raise RuntimeError(completed.stderr.strip() or completed.stdout.strip())
+        open_returncode = completed.returncode
 
     started = time.monotonic()
-    socket_ready = socket.exists()
+    socket_ready = bridge_endpoint_available(
+        host=host,
+        port=port,
+        socket_path=str(socket_path) if socket_path else None,
+    )
     while timeout > 0 and not socket_ready:
         if time.monotonic() - started >= timeout:
             break
         time.sleep(1)
-        socket_ready = socket.exists()
+        socket_ready = bridge_endpoint_available(
+            host=host,
+            port=port,
+            socket_path=str(socket_path) if socket_path else None,
+        )
 
     possible_blockers: list[str] = []
     if not socket_ready:
@@ -361,7 +594,7 @@ def launch_bridge(
             possible_blockers.append(
                 "macOS quarantine attributes are still present; rerun with --clear-quarantine."
             )
-        if not suppress_app_update_check:
+        if suppress_app_update_check and resolved_platform != "windows":
             possible_blockers.append(
                 "If SketchUp shows an update prompt, rerun with --suppress-update-check."
             )
@@ -369,10 +602,14 @@ def launch_bridge(
     return {
         "app_path": str(app),
         "sketchup_version": effective_version,
+        "platform": resolved_platform,
         "model_path": launch_model["model_path"],
         "template_source": launch_model["template_source"],
         "copied_template": launch_model["copied_template"],
-        "socket_path": str(socket),
+        "socket_path": str(socket_path) if socket_path else None,
+        "host": host,
+        "port": port,
+        "endpoint": f"tcp://{host}:{port}",
         "socket_ready": socket_ready,
         "timeout": timeout,
         "elapsed_seconds": round(time.monotonic() - started, 3),
@@ -380,7 +617,7 @@ def launch_bridge(
         "quarantine_entries": quarantine_after,
         "quarantine_cleared": quarantine_clear_result,
         "update_check_suppressed": update_check_result,
-        "open_returncode": completed.returncode,
+        "open_returncode": open_returncode,
         "possible_blockers": possible_blockers,
     }
 
@@ -400,8 +637,17 @@ def sketchup_plugins_dir_for_version(home: str | Path, version: str) -> Path:
 def installed_sketchup_plugin_dirs(
     home: str | Path | None = None,
     applications_dir: str | Path = "/Applications",
+    platform: str | None = "macos",
+    appdata: str | Path | None = None,
 ) -> list[Path]:
-    """Return detected macOS SketchUp plugin directories, newest first."""
+    """Return detected SketchUp plugin directories, newest first.
+
+    Defaults to the macOS layout; pass ``platform=resolve_platform()`` to scan
+    the host platform.
+    """
+    if resolve_platform(platform) == "windows":
+        return windows_installed_sketchup_plugin_dirs(appdata)
+
     home_path = Path(home).expanduser() if home is not None else Path.home()
     app_support = home_path / "Library" / "Application Support"
     candidates: list[Path] = []
@@ -436,8 +682,17 @@ def default_plugins_dir(
     sketchup_version: str | None = None,
     home: str | Path | None = None,
     applications_dir: str | Path = "/Applications",
+    platform: str | None = "macos",
+    appdata: str | Path | None = None,
 ) -> Path:
-    """Return the target SketchUp Plugins directory for macOS."""
+    """Return the target SketchUp Plugins directory.
+
+    Defaults to the macOS layout; pass ``platform=resolve_platform()`` to target
+    the host platform.
+    """
+    if resolve_platform(platform) == "windows":
+        return windows_default_plugins_dir(sketchup_version, appdata)
+
     home_path = Path(home).expanduser() if home is not None else Path.home()
     if sketchup_version:
         return sketchup_plugins_dir_for_version(home_path, sketchup_version)
@@ -457,7 +712,17 @@ def bridge_loader_content() -> str:
     """Return the SketchUp Plugins root loader for the installed bridge."""
     return """# frozen_string_literal: true
 
-log_path = ENV.fetch("SU_BRIDGE_LOADER_LOG", "/tmp/su_bridge_loader.log")
+require "tmpdir"
+
+log_path = ENV.fetch("SU_BRIDGE_LOADER_LOG", File.join(Dir.tmpdir, "su_bridge_loader.log"))
+
+# Logging must never break bridge startup (the temp directory may be
+# unwritable on locked-down hosts).
+su_bridge_log = lambda do |message|
+  File.open(log_path, "a") { |file| file.puts(message) }
+rescue StandardError
+  nil
+end
 
 begin
   require "sketchup.rb"
@@ -467,23 +732,19 @@ begin
     "SketchUp Agent Harness Bridge",
     "su_bridge/lib/su_bridge"
   )
-  extension.description = "Local socket bridge for SketchUp Agent Harness."
+  extension.description = "Loopback TCP bridge for SketchUp Agent Harness."
   extension.version = "1.0.0"
   extension.creator = "SketchUp Agent Harness"
   Sketchup.register_extension(extension, true)
 
   bridge_path = File.expand_path("su_bridge/lib/su_bridge.rb", __dir__)
-  File.open(log_path, "a") do |log|
-    log.puts("[#{Time.now.utc}] loading #{bridge_path}")
-  end
+  su_bridge_log.call("[#{Time.now.utc}] loading #{bridge_path}")
   require bridge_path
   SuBridge.start if defined?(SuBridge)
-  File.open(log_path, "a") { |log| log.puts("[#{Time.now.utc}] started") }
+  su_bridge_log.call("[#{Time.now.utc}] started")
 rescue Exception => error
-  File.open(log_path, "a") do |log|
-    log.puts("[#{Time.now.utc}] #{error.class}: #{error.message}")
-    log.puts(error.backtrace.join("\\n")) if error.backtrace
-  end
+  su_bridge_log.call("[#{Time.now.utc}] #{error.class}: #{error.message}")
+  su_bridge_log.call(error.backtrace.join("\\n")) if error.backtrace
   raise
 end
 """
@@ -535,8 +796,13 @@ def install_bridge(
     sketchup_version: str | None = None,
     force: bool = False,
     dry_run: bool = False,
+    platform: str | None = None,
 ) -> dict[str, Any]:
-    """Install the Ruby bridge into a SketchUp Plugins directory."""
+    """Install the Ruby bridge into a SketchUp Plugins directory.
+
+    Without ``plugins_dir`` the target is the newest detected SketchUp install
+    for the host platform (macOS Application Support or Windows %APPDATA%).
+    """
     source = Path(source_dir).expanduser().resolve() if source_dir else default_bridge_source()
     if not source.exists():
         raise FileNotFoundError(f"Bridge source not found: {source}")
@@ -546,7 +812,10 @@ def install_bridge(
     target_root = (
         Path(plugins_dir).expanduser().resolve()
         if plugins_dir
-        else default_plugins_dir(sketchup_version).expanduser().resolve()
+        else default_plugins_dir(
+            sketchup_version,
+            platform=resolve_platform(platform),
+        ).expanduser().resolve()
     )
     target = target_root / "su_bridge"
     loader = target_root / LOADER_FILENAME

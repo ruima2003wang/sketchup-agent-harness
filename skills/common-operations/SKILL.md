@@ -25,7 +25,7 @@ After mutation:
 - Mention files written when a project path was provided.
 - Keep any failed operation actionable and retryable.
 
-When SketchUp execution is requested but `/tmp/su_bridge.sock` is unavailable,
+When SketchUp execution is requested but the loopback bridge (`tcp://127.0.0.1:9877`) is unavailable,
 use `launch_sketchup_bridge` before asking the designer to intervene. Start with
 `sketchup_version="2024"` when no version is known. If the result reports update,
 welcome-screen, sign-in, or license blockers, pass those structured blockers

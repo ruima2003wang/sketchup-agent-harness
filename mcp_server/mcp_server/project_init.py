@@ -77,8 +77,9 @@ This is a SketchUp Agent Harness design project.
 - Use `imports/` for source material, import manifests, previews, extracted
   evidence, and source-backed repair records. Imported files are evidence;
   `design_model.json` remains the working truth.
-- Use `/tmp/su_bridge.sock` only as the live SketchUp execution bridge; SketchUp
-  is the rendered/executed view, not the source of truth.
+- Use the loopback bridge endpoint (`tcp://127.0.0.1:9877`) only as the live
+  SketchUp execution bridge; SketchUp is the rendered/executed view, not the
+  source of truth.
 - Use project-local runtime skills from `.agents/skills/` for Codex and
   `.claude/skills/` for Claude when those agent CLIs support project skills.
 - Packaged runtime skills define generic product workflows. Project/session

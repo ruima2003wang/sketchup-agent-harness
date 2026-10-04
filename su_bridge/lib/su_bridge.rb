@@ -19,7 +19,8 @@ require "su_bridge/design_model_sync"
 module SuBridge
   class Error < StandardError; end
 
-  # SOCKET_PATH is now in version.rb to ensure it's defined before other files load
+  # BRIDGE_HOST / BRIDGE_PORT live in version.rb so the loopback TCP endpoint
+  # is defined before other files load.
 
   # @return [DesignModelSync] Singleton instance for design model sync
   def self.design_sync

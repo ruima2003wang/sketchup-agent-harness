@@ -2,7 +2,7 @@
 
 These tests require:
 1. SketchUp to be running with su_bridge plugin loaded
-2. Socket at /tmp/su_bridge.sock to exist
+2. The loopback TCP bridge endpoint (127.0.0.1:9877) to be listening
 
 Run against a disposable SketchUp scene with:
 cd mcp_server && uv run pytest tests/test_integration.py -m integration -o addopts="" -v
@@ -13,6 +13,12 @@ import json
 import time
 from pathlib import Path
 
+from mcp_server.bridge.socket_bridge import (
+    DEFAULT_BRIDGE_HOST,
+    DEFAULT_BRIDGE_PORT,
+    bridge_endpoint_available,
+)
+
 
 pytestmark = pytest.mark.integration
 
@@ -20,18 +26,20 @@ pytestmark = pytest.mark.integration
 class TestIntegrationConnection:
     """Test connection to Ruby bridge."""
 
-    def test_socket_exists(self):
-        """Verify the Ruby bridge socket exists."""
-        socket_path = Path("/tmp/su_bridge.sock")
-        assert socket_path.exists(), "Ruby bridge socket not found. Start SuBridge in SketchUp Ruby Console."
+    def test_endpoint_is_reachable(self):
+        """Verify the Ruby bridge endpoint is reachable."""
+        assert bridge_endpoint_available(
+            host=DEFAULT_BRIDGE_HOST,
+            port=DEFAULT_BRIDGE_PORT,
+        ), "Ruby bridge endpoint not reachable. Start SuBridge in SketchUp Ruby Console."
 
     def test_can_connect_and_ping(self):
         """Test basic connection to Ruby bridge."""
         import socket
-        sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sock.settimeout(5)
         try:
-            sock.connect("/tmp/su_bridge.sock")
+            sock.connect((DEFAULT_BRIDGE_HOST, DEFAULT_BRIDGE_PORT))
             sock.send(b'{"jsonrpc":"2.0","method":"ping","id":1}\n')
             response = sock.recv(4096)
             assert response, "No response from Ruby bridge"
