@@ -43,7 +43,7 @@ Agents can inspect this state with `get_project_state`, list placed objects with
 
 When SketchUp execution is requested, agents can start the live bridge with
 `launch_sketchup_bridge`. This opens SketchUp through a model window and waits
-for `/tmp/su_bridge.sock`. If SketchUp is blocked by a welcome screen, update
+for its loopback TCP endpoint (`127.0.0.1:9877`). If SketchUp is blocked by a welcome screen, update
 prompt, sign-in prompt, license prompt, or missing bridge install, the tool
 returns structured blockers instead of silently failing.
 

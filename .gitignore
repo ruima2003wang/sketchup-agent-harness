@@ -38,9 +38,6 @@ vendor/bundle/
 local_library/
 *.log
 
-# MCP Server socket
-/tmp/su_bridge.sock
-
 # IDE
 .DS_Store
 .vscode/

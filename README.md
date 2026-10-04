@@ -166,7 +166,8 @@ bundle exec rspec spec/ --format progress
 ```
 
 Live SketchUp integration tests require SketchUp to be open in a model window
-with `SuBridge` running and `/tmp/su_bridge.sock` available. Use
+with `SuBridge` running and its loopback TCP endpoint (`127.0.0.1:9877`)
+reachable. Use
 `sketchup-agent launch-bridge` instead of leaving SketchUp on the welcome
 screen. If a SketchUp update prompt blocks the model window, use
 `sketchup-agent launch-bridge --suppress-update-check`. Run them only against a

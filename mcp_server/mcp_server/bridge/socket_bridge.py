@@ -1,17 +1,15 @@
-"""Localhost socket bridge to the su_bridge Ruby plugin.
+"""Loopback TCP bridge to the su_bridge Ruby plugin.
 
-The bridge defaults to a loopback TCP socket (``127.0.0.1:9877``) so it works
+The bridge listens on a loopback TCP socket (``127.0.0.1:9877``) so it works
 on every platform, including Windows where ``AF_UNIX`` is unavailable in
-SketchUp's bundled Ruby and CPython. A Unix domain socket path is still
-honored when one is configured and the host platform supports ``AF_UNIX``.
+SketchUp's bundled Ruby and CPython.
 """
 
-import os
 import socket
 import json
 import time
 from typing import Any
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from enum import Enum
 
 DEFAULT_BRIDGE_HOST = "127.0.0.1"
@@ -29,12 +27,9 @@ class ConnectionState(Enum):
 class BridgeConfig:
     """Configuration for the loopback bridge.
 
-    ``host``/``port`` select a TCP endpoint (the default). ``socket_path`` is
-    an optional Unix domain socket path; when set and the platform supports
-    ``AF_UNIX`` it takes precedence over ``host``/``port``.
+    ``host``/``port`` select the TCP endpoint the bridge listens on.
     """
 
-    socket_path: str | None = None
     host: str = DEFAULT_BRIDGE_HOST
     port: int = DEFAULT_BRIDGE_PORT
     connect_timeout: float = 5.0
@@ -45,15 +40,8 @@ class BridgeConfig:
     ping_timeout: float = 5.0
 
     @property
-    def uses_unix_socket(self) -> bool:
-        """Return True when a supported Unix domain socket path is configured."""
-        return bool(self.socket_path) and hasattr(socket, "AF_UNIX")
-
-    @property
     def address(self) -> str:
         """Human-readable endpoint used for logs and diagnostics."""
-        if self.uses_unix_socket:
-            return str(self.socket_path)
         return f"tcp://{self.host}:{self.port}"
 
 
@@ -87,12 +75,6 @@ class SocketBridge:
 
     def _new_client_socket(self) -> socket.socket:
         """Create and connect a client socket for the configured endpoint."""
-        if self._config.uses_unix_socket:
-            client = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-            client.settimeout(self._config.connect_timeout)
-            client.connect(self._config.socket_path)
-            return client
-
         client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         client.settimeout(self._config.connect_timeout)
         client.connect((self._config.host, self._config.port))
@@ -243,31 +225,21 @@ class SyncSocketBridge(SocketBridge):
 def create_bridge(
     host: str = DEFAULT_BRIDGE_HOST,
     port: int = DEFAULT_BRIDGE_PORT,
-    socket_path: str | None = None,
 ) -> SocketBridge:
     """Factory function to create a configured bridge.
 
-    Defaults to loopback TCP; pass ``socket_path`` to use a Unix domain socket
-    on platforms that support it.
+    Defaults to loopback TCP.
     """
-    config = BridgeConfig(host=host, port=port, socket_path=socket_path)
+    config = BridgeConfig(host=host, port=port)
     return SocketBridge(config)
 
 
 def bridge_endpoint_available(
     host: str = DEFAULT_BRIDGE_HOST,
     port: int = DEFAULT_BRIDGE_PORT,
-    socket_path: str | None = None,
     timeout: float = 0.5,
 ) -> bool:
-    """Return True when a bridge endpoint is reachable.
-
-    Unix domain sockets are probed by path existence; TCP endpoints are probed
-    with a short connect attempt.
-    """
-    if socket_path and hasattr(socket, "AF_UNIX"):
-        return os.path.exists(socket_path)
-
+    """Return True when the bridge TCP endpoint is reachable."""
     try:
         with socket.create_connection((host, port), timeout=timeout):
             return True

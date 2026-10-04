@@ -8,8 +8,7 @@ This document defines the JSON-RPC 2.0 interface between the Python MCP server a
 
 ## Transport
 
-- **Primary**: Unix domain socket (`/tmp/su_bridge.sock`)
-- **Alternative**: Windows named pipe (`\\.\pipe\su_bridge`)
+- **Loopback TCP**: `127.0.0.1:9877` (host/port overridable via `SU_BRIDGE_HOST`/`SU_BRIDGE_PORT`)
 
 ---
 

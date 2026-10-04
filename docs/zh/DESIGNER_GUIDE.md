@@ -30,7 +30,7 @@ python3 -m mcp_server.server
 
 看到类似这样的输出就表示启动成功了：
 ```
-[su_bridge] Server started on /tmp/su_bridge.sock
+[su_bridge] Server started on tcp://127.0.0.1:9877
 ```
 
 ---

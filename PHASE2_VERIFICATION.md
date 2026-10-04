@@ -22,13 +22,13 @@ python3 -c "
 from mcp_server.bridge.socket_bridge import SocketBridge, BridgeConfig, PingResult, ConnectionState, create_bridge
 
 # Test instantiation
-config = BridgeConfig(socket_path='/tmp/su_bridge.sock')
+config = BridgeConfig()
 bridge = SocketBridge(config)
 print('Bridge state:', bridge.state)
 print('Is connected:', bridge.is_connected)
 
 # Test factory
-bridge2 = create_bridge('/tmp/su_bridge.sock')
+bridge2 = create_bridge()
 print('Factory works:', bridge2.state)
 
 print('Python socket bridge OK')
@@ -41,7 +41,7 @@ print('Python socket bridge OK')
 
 ### Features Implemented
 - `ServerListener`: Non-blocking socket server using `UI.start_timer`
-- `SOCKET_PATH`: `/tmp/su_bridge.sock`
+- `BRIDGE_HOST`/`BRIDGE_PORT`: `127.0.0.1:9877` (loopback TCP)
 - `TIMER_INTERVAL`: 0.1 seconds for polling
 - `PROTOCOL_VERSION`: "1.0", `SERVER_VERSION`: "0.1.0"
 - `start()`: Sets up socket and schedules polling
@@ -89,7 +89,7 @@ ruby -c lib/su_bridge/undo_manager.rb
    ```ruby
    # Create a mock client test
    require 'socket'
-   sock = UNIXSocket.new('/tmp/su_bridge.sock')
+   sock = TCPSocket.new('127.0.0.1', 9877)
    sock.write('{"jsonrpc":"2.0","method":"ping","params":{"timestamp":0},"id":1}' + "\n")
    puts sock.read
    sock.close

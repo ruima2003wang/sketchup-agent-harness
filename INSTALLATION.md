@@ -161,8 +161,8 @@ SuBridge.start if defined?(SuBridge)
 RUBY
 ```
 
-Open SketchUp after installing. The bridge is ready when
-`/tmp/su_bridge.sock` exists.
+Open SketchUp after installing. The bridge is ready when its loopback TCP
+endpoint (`127.0.0.1:9877`) is reachable.
 
 The most reliable CLI startup path opens SketchUp with a temporary copy of a
 bundled template, so the app enters a model window instead of stopping on the
@@ -225,7 +225,8 @@ cd mcp_server
 uv run --extra dev sketchup-agent doctor /tmp/sah-bathroom --sketchup-version 2024
 ```
 
-When SketchUp is open and `/tmp/su_bridge.sock` exists, `doctor` also probes
+When SketchUp is open and its loopback TCP endpoint (`127.0.0.1:9877`) is
+reachable, `doctor` also probes
 non-mutating bridge operations. If it reports missing runtime capabilities,
 restart SketchUp after `install-bridge --force` or reload the bridge before
 running live smoke tests.

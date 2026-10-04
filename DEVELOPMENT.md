@@ -113,7 +113,7 @@ uv build --wheel --out-dir /tmp/sah-dist --clear
 ## Integration Tests
 
 Live integration tests require SketchUp with the installed bridge loader running
-and `/tmp/su_bridge.sock` available:
+and its loopback TCP endpoint (`127.0.0.1:9877`) reachable:
 
 ```bash
 cd mcp_server

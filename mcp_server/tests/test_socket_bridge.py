@@ -20,7 +20,6 @@ class TestBridgeConfig:
         config = BridgeConfig()
         assert config.host == DEFAULT_BRIDGE_HOST == "127.0.0.1"
         assert config.port == DEFAULT_BRIDGE_PORT == 9877
-        assert config.socket_path is None
         assert config.connect_timeout == 5.0
         assert config.recv_timeout == 30.0
         assert config.max_retries == 3
@@ -80,7 +79,6 @@ class TestSocketBridge:
         bridge = create_bridge()
         assert bridge._config.host == "127.0.0.1"
         assert bridge._config.port == 9877
-        assert bridge._config.socket_path is None
         assert isinstance(bridge, SocketBridge)
 
     def test_factory_function_custom_endpoint(self):

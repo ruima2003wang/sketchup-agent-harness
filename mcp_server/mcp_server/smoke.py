@@ -252,13 +252,12 @@ def validate_project(project_path: str | Path) -> dict[str, Any]:
 
 
 def bridge_socket_check(
-    socket_path: str | None = None,
     host: str = DEFAULT_BRIDGE_HOST,
     port: int = DEFAULT_BRIDGE_PORT,
 ) -> dict[str, Any]:
     """Check whether the SketchUp bridge endpoint is reachable."""
-    available = bridge_endpoint_available(host=host, port=port, socket_path=socket_path)
-    endpoint = str(socket_path) if socket_path else f"tcp://{host}:{port}"
+    available = bridge_endpoint_available(host=host, port=port)
+    endpoint = f"tcp://{host}:{port}"
     return check_result(
         "bridge_socket",
         available,
@@ -272,7 +271,6 @@ def run_smoke(
     template: str = "bathroom",
     overwrite: bool = False,
     with_bridge: bool = False,
-    socket_path: str | None = None,
     host: str = DEFAULT_BRIDGE_HOST,
     port: int = DEFAULT_BRIDGE_PORT,
 ) -> dict[str, Any]:
@@ -324,7 +322,7 @@ def run_smoke(
     result["checks"].append(check_result("headless_bathroom_plan", plan_ok))
 
     if with_bridge:
-        socket_check = bridge_socket_check(socket_path, host=host, port=port)
+        socket_check = bridge_socket_check(host=host, port=port)
         result["checks"].append(socket_check)
         if socket_check["ok"]:
             try:

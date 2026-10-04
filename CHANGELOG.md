@@ -13,7 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- None
+- Documentation now describes the bridge as a loopback TCP endpoint (`127.0.0.1:9877`) instead of a Unix domain socket path.
 
 ### Deprecated
 
@@ -21,7 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 
-- None
+- The unused Unix-socket fallback in the Python MCP client (`socket_path`, `uses_unix_socket`, and the `--socket-path` option); the bridge is loopback TCP only.
 
 ### Fixed
 

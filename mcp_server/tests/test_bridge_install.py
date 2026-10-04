@@ -583,7 +583,6 @@ def test_cli_launch_bridge_outputs_json(monkeypatch, capsys):
         assert kwargs["suppress_app_update_check"] is True
         return {
             "socket_ready": True,
-            "socket_path": kwargs["socket_path"],
             "app_path": "/Applications/SketchUp 2024/SketchUp.app",
         }
 
@@ -594,8 +593,6 @@ def test_cli_launch_bridge_outputs_json(monkeypatch, capsys):
             "launch-bridge",
             "--sketchup-version",
             "2024",
-            "--socket-path",
-            "/tmp/test.sock",
             "--clear-quarantine",
             "--suppress-update-check",
         ]
@@ -605,7 +602,6 @@ def test_cli_launch_bridge_outputs_json(monkeypatch, capsys):
 
     assert exit_code == 0
     assert data["socket_ready"] is True
-    assert data["socket_path"] == "/tmp/test.sock"
 
 
 def test_bridge_loader_content_loads_installed_bridge():

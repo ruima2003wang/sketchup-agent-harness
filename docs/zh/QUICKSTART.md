@@ -59,8 +59,8 @@ SuBridge.start
 
 看到类似输出表示成功：
 ```
-[su_bridge] Socket ready on /tmp/su_bridge.sock
-[su_bridge] Server started on /tmp/su_bridge.sock
+[su_bridge] Socket ready on tcp://127.0.0.1:9877
+[su_bridge] Server started on tcp://127.0.0.1:9877
 ```
 
 ---

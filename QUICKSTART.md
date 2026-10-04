@@ -73,8 +73,8 @@ sketchup-agent install-bridge --sketchup-version 2024 --force
 ```
 
 Open SketchUp after installation. The installed `su_bridge.rb` loader starts
-the bridge automatically, and the bridge is ready when `/tmp/su_bridge.sock`
-exists.
+the bridge automatically, and the bridge is ready when its loopback TCP
+endpoint (`127.0.0.1:9877`) is reachable.
 
 For reliable startup from the CLI, open SketchUp through a model window rather
 than leaving it on the welcome screen:
@@ -194,5 +194,5 @@ cd mcp_server
 uv run --extra dev sketchup-agent smoke /tmp/sah-smoke --force
 ```
 
-Add `--with-bridge` only after SketchUp is open and `/tmp/su_bridge.sock`
-exists.
+Add `--with-bridge` only after SketchUp is open and its loopback TCP endpoint
+(`127.0.0.1:9877`) is reachable.

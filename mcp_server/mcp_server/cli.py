@@ -998,11 +998,6 @@ def build_parser() -> argparse.ArgumentParser:
         help="Optional .skp model to open. Defaults to a copied bundled template.",
     )
     launch_bridge_parser.add_argument(
-        "--socket-path",
-        default=None,
-        help="Optional Unix domain socket path (macOS/Linux only). Defaults to TCP.",
-    )
-    launch_bridge_parser.add_argument(
         "--host",
         default=DEFAULT_BRIDGE_HOST,
         help="Loopback bridge host (default: 127.0.0.1).",
@@ -1075,11 +1070,6 @@ def build_parser() -> argparse.ArgumentParser:
     doctor_parser.add_argument(
         "--sketchup-version",
         help="SketchUp version for the default Plugins path, for example 2022.",
-    )
-    doctor_parser.add_argument(
-        "--socket-path",
-        default=None,
-        help="Optional Unix domain socket path (macOS/Linux only). Defaults to TCP.",
     )
     doctor_parser.add_argument(
         "--host",
@@ -1551,7 +1541,6 @@ def main(argv: list[str] | None = None) -> int:
                 sketchup_version=args.sketchup_version,
                 app_path=args.app_path,
                 model_path=args.model_path,
-                socket_path=args.socket_path,
                 host=args.host,
                 port=args.port,
                 timeout=args.timeout,
@@ -1575,7 +1564,6 @@ def main(argv: list[str] | None = None) -> int:
                 project_path=args.project_path,
                 plugins_dir=args.plugins_dir,
                 sketchup_version=args.sketchup_version,
-                socket_path=args.socket_path,
                 host=args.host,
                 port=args.port,
             )

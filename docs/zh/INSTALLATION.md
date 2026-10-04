@@ -145,7 +145,7 @@ SuBridge::VERSION
 ### Socket 连接被拒绝
 
 - 确保 SketchUp 中的 `SuBridge.start` 已执行
-- 检查 `/tmp/su_bridge.sock` 是否存在
+- 检查桥接的回环 TCP 端点 `127.0.0.1:9877` 是否可连接
 
 ---
 

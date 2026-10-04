@@ -79,13 +79,12 @@ def console_script_check(command: str) -> dict[str, Any]:
 
 
 def bridge_socket_check(
-    socket_path: str | None = None,
     host: str = DEFAULT_BRIDGE_HOST,
     port: int = DEFAULT_BRIDGE_PORT,
 ) -> dict[str, Any]:
     """Check whether the live bridge endpoint is reachable."""
-    available = bridge_endpoint_available(host=host, port=port, socket_path=socket_path)
-    endpoint = str(socket_path) if socket_path else f"tcp://{host}:{port}"
+    available = bridge_endpoint_available(host=host, port=port)
+    endpoint = f"tcp://{host}:{port}"
     return check(
         "bridge_socket",
         available,
@@ -104,13 +103,12 @@ def bridge_socket_check(
 
 
 def bridge_runtime_capability_check(
-    socket_path: str | None = None,
     host: str = DEFAULT_BRIDGE_HOST,
     port: int = DEFAULT_BRIDGE_PORT,
 ) -> dict[str, Any]:
     """Check whether the live bridge supports required non-mutating operations."""
-    available = bridge_endpoint_available(host=host, port=port, socket_path=socket_path)
-    endpoint = str(socket_path) if socket_path else f"tcp://{host}:{port}"
+    available = bridge_endpoint_available(host=host, port=port)
+    endpoint = f"tcp://{host}:{port}"
     if not available:
         return check(
             "bridge_runtime_capabilities",
@@ -127,7 +125,6 @@ def bridge_runtime_capability_check(
     operation_results: dict[str, dict[str, Any]] = {}
     bridge = SocketBridge(
         BridgeConfig(
-            socket_path=str(socket_path) if socket_path else None,
             host=host,
             port=port,
             connect_timeout=1.0,
@@ -379,7 +376,6 @@ def run_doctor(
     project_path: str | Path | None = None,
     sketchup_version: str | None = None,
     plugins_dir: str | Path | None = None,
-    socket_path: str | None = None,
     host: str = DEFAULT_BRIDGE_HOST,
     port: int = DEFAULT_BRIDGE_PORT,
 ) -> dict[str, Any]:
@@ -391,8 +387,8 @@ def run_doctor(
         designer_profile_check(),
         sketchup_app_check(sketchup_version),
         sketchup_install_check(sketchup_version=sketchup_version, plugins_dir=plugins_dir),
-        bridge_socket_check(socket_path, host=host, port=port),
-        bridge_runtime_capability_check(socket_path, host=host, port=port),
+        bridge_socket_check(host=host, port=port),
+        bridge_runtime_capability_check(host=host, port=port),
     ]
     project_validation = project_check(project_path)
     if project_validation is not None:

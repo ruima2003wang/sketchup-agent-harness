@@ -513,7 +513,6 @@ def launch_bridge(
     sketchup_version: str | None = None,
     app_path: str | Path | None = None,
     model_path: str | Path | None = None,
-    socket_path: str | Path | None = None,
     host: str = DEFAULT_BRIDGE_HOST,
     port: int = DEFAULT_BRIDGE_PORT,
     timeout: float = 90.0,
@@ -525,8 +524,7 @@ def launch_bridge(
 
     On macOS the app bundle is opened with ``open -a``; on Windows the
     ``SketchUp.exe`` path is launched directly. The bridge is then awaited as
-    a loopback TCP endpoint (or a Unix socket path when ``socket_path`` is
-    given on a supporting platform).
+    a loopback TCP endpoint.
     """
     resolved_platform = resolve_platform(platform)
     app = (
@@ -569,7 +567,6 @@ def launch_bridge(
     socket_ready = bridge_endpoint_available(
         host=host,
         port=port,
-        socket_path=str(socket_path) if socket_path else None,
     )
     while timeout > 0 and not socket_ready:
         if time.monotonic() - started >= timeout:
@@ -578,7 +575,6 @@ def launch_bridge(
         socket_ready = bridge_endpoint_available(
             host=host,
             port=port,
-            socket_path=str(socket_path) if socket_path else None,
         )
 
     possible_blockers: list[str] = []
@@ -606,7 +602,6 @@ def launch_bridge(
         "model_path": launch_model["model_path"],
         "template_source": launch_model["template_source"],
         "copied_template": launch_model["copied_template"],
-        "socket_path": str(socket_path) if socket_path else None,
         "host": host,
         "port": port,
         "endpoint": f"tcp://{host}:{port}",

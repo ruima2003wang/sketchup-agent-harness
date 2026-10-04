@@ -194,7 +194,7 @@ SuBridge::ServerListener.new.start
 
 # Test wall creation manually
 require 'json'
-sock = UNIXSocket.new('/tmp/su_bridge.sock')
+sock = TCPSocket.new('127.0.0.1', 9877)
 request = {
   jsonrpc: '2.0',
   method: 'execute_operation',
