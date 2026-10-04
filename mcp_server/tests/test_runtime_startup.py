@@ -1,6 +1,7 @@
 """Runtime startup and MCP registration smoke tests."""
 
 import json
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -21,10 +22,14 @@ def test_plugin_manifests_are_valid_json():
         assert isinstance(data, dict)
 
 
-def test_start_script_can_import_runtime_dependencies():
+def test_configured_entry_can_import_runtime_dependencies():
+    manifest = json.loads((REPO_ROOT / ".mcp.json").read_text(encoding="utf-8"))
+    entry = manifest["mcpServers"]["sketchup-mcp"]
+    assert entry["command"] == "uv"
     result = subprocess.run(
-        [str(REPO_ROOT / "mcp_server" / "start.sh"), "--startup-check"],
+        [entry["command"], *entry["args"], "--startup-check"],
         cwd=REPO_ROOT,
+        env={**os.environ, "UV_OFFLINE": "true"},
         capture_output=True,
         text=True,
         timeout=60,
@@ -32,6 +37,19 @@ def test_start_script_can_import_runtime_dependencies():
     )
 
     assert result.returncode == 0, result.stderr
+    assert result.stdout == ""
+
+
+def test_claude_plugin_uses_the_same_portable_entry():
+    manifest = json.loads(
+        (REPO_ROOT / ".claude-plugin" / "plugin.json").read_text(encoding="utf-8")
+    )
+    entry = manifest["mcpServers"]["sketchup-mcp"]
+    assert entry["command"] == "uv"
+    assert entry["args"] == [
+        "run", "--directory", "${CLAUDE_PLUGIN_ROOT}/mcp_server",
+        "python", "-m", "mcp_server.server",
+    ]
 
 
 def test_main_module_registers_late_tools_before_run(monkeypatch):

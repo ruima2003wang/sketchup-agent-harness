@@ -630,7 +630,7 @@ def project_relative_path(project_path: str | Path, path: str | Path) -> str:
     root = Path(project_path).expanduser().resolve()
     target = Path(path).expanduser().resolve()
     try:
-        return str(target.relative_to(root))
+        return target.relative_to(root).as_posix()
     except ValueError:
         return str(target)
 

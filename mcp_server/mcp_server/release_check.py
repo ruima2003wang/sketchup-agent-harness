@@ -69,9 +69,11 @@ def manifest_json_check(repo_root: str | Path | None = None) -> dict[str, Any]:
 
 
 def startup_check(repo_root: str | Path | None = None) -> dict[str, Any]:
-    """Check the MCP startup script import path."""
+    """Check the configured MCP server import path."""
     root = _repo_root(repo_root)
-    command = [str(root / "mcp_server" / "start.sh"), "--startup-check"]
+    manifest = json.loads((root / ".mcp.json").read_text(encoding="utf-8"))
+    server = manifest["mcpServers"]["sketchup-mcp"]
+    command = [server["command"], *server["args"], "--startup-check"]
     result = _run_command(command, cwd=root, timeout=60)
     return check_result(
         "mcp_startup",

@@ -2,6 +2,7 @@
 
 import json
 import re
+from pathlib import Path
 
 import pytest
 
@@ -57,7 +58,7 @@ async def test_generate_project_report_mcp_tool(tmp_path):
     response = await server.generate_project_report(str(tmp_path))
     data = json.loads(response.text)
 
-    assert data["report_path"].endswith("reports/design_report.md")
+    assert Path(data["report_path"]) == tmp_path / "reports" / "design_report.md"
     assert data["component_count"] == 4
 
 
@@ -71,7 +72,7 @@ def test_cli_report_generates_project_report(tmp_path, capsys):
     data = json.loads(captured.out)
 
     assert exit_code == 0
-    assert data["report_path"].endswith("reports/design_report.md")
+    assert Path(data["report_path"]) == tmp_path / "reports" / "design_report.md"
     assert (tmp_path / "reports" / "design_report.md").exists()
 
 
@@ -89,5 +90,7 @@ async def test_generate_report_compat_tool_returns_json(tmp_path):
     )
     data = json.loads(response.text)
 
-    assert data["project_path"].endswith("designs/bathroom")
-    assert data["report_path"].endswith("reports/design_report.md")
+    assert Path(data["project_path"]) == project_dir / project_name
+    assert Path(data["report_path"]) == (
+        project_dir / project_name / "reports" / "design_report.md"
+    )

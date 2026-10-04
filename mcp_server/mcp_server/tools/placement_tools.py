@@ -17,7 +17,7 @@ LIBRARY_PATH = Path(__file__).parent.parent / "assets" / "library.json"
 
 def load_library() -> dict[str, Any]:
     """Load the component library from JSON."""
-    with open(LIBRARY_PATH) as f:
+    with open(LIBRARY_PATH, encoding="utf-8") as f:
         return json.load(f)
 
 

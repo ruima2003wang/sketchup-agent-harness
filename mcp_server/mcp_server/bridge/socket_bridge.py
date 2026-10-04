@@ -116,7 +116,7 @@ class SocketBridge:
                 pass
             self._socket = None
 
-    def send(self, data: dict[str, Any]) -> dict[str, Any]:
+    def send(self, data: dict[str, Any], timeout: float | None = None) -> dict[str, Any]:
         """Send JSON-RPC request and receive response with timeout.
 
         Creates a fresh connection for each request since the Ruby server
@@ -129,21 +129,31 @@ class SocketBridge:
         if self._state not in (ConnectionState.CONNECTED, ConnectionState.HANDSHAKE):
             raise ConnectionError(f"Not connected (state: {self._state.value})")
 
-        self._socket.settimeout(self._config.recv_timeout)
+        recv_timeout = self._config.recv_timeout if timeout is None else timeout
+        self._socket.settimeout(recv_timeout)
 
         try:
             message = json.dumps(data) + "\n"
             self._socket.sendall(message.encode("utf-8"))
 
-            response_data = self._socket.recv(65536).decode("utf-8")
-            if not response_data:
+            response = bytearray()
+            while b"\n" not in response:
+                chunk = self._socket.recv(65536)
+                if not chunk:
+                    break
+                response.extend(chunk)
+            if not response:
                 raise ConnectionError("Empty response from server")
 
-            return json.loads(response_data)
+            # Decode only after the complete JSON line has arrived: a UTF-8
+            # character can span TCP chunks. EOF also supports older servers.
+            return json.loads(response.split(b"\n", 1)[0].decode("utf-8"))
         except socket.timeout:
-            raise TimeoutError(f"Request timed out after {self._config.recv_timeout}s")
+            raise TimeoutError(f"Request timed out after {recv_timeout}s")
         except json.JSONDecodeError as e:
             raise ValueError(f"Invalid JSON response: {e}")
+        finally:
+            self.disconnect()
 
     def ping(self) -> PingResult:
         """Send ping and wait for pong response."""
@@ -213,13 +223,7 @@ class SyncSocketBridge(SocketBridge):
         request_id = data.get("id", f"req_{time.monotonic()}")
         data["id"] = request_id
 
-        self._socket.settimeout(timeout or self._config.recv_timeout)
-
-        message = json.dumps(data) + "\n"
-        self._socket.sendall(message.encode("utf-8"))
-
-        response_data = self._socket.recv(65536).decode("utf-8")
-        return json.loads(response_data)
+        return self.send(data, timeout=timeout)
 
 
 def create_bridge(

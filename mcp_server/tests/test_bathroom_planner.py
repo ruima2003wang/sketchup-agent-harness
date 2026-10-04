@@ -1,6 +1,7 @@
 """Tests for the headless bathroom vertical slice."""
 
 import json
+from pathlib import Path
 
 import pytest
 
@@ -108,7 +109,9 @@ def test_save_bathroom_plan_writes_project_files(tmp_path):
     assert written["design_model_path"].endswith("design_model.json")
     assert written["design_rules_path"].endswith("design_rules.json")
     assert written["assets_lock_path"].endswith("assets.lock.json")
-    assert written["snapshot_manifest_path"].endswith("snapshots/manifest.json")
+    assert Path(written["snapshot_manifest_path"]) == (
+        tmp_path / "snapshots" / "manifest.json"
+    )
     assert design_model["project_name"] == "saved_bathroom"
     assert design_rules["rule_sets"]["bathroom"]["clearances"][
         "toilet_front_clearance"

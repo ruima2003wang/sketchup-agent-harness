@@ -81,7 +81,9 @@ async def test_register_project_component_adds_searchable_project_manifest(tmp_p
         procedural_fallback="box_component",
     )
     data = json.loads(response.text)
-    project_library = json.loads((tmp_path / "component_library.json").read_text())
+    project_library = json.loads(
+        (tmp_path / "component_library.json").read_text(encoding="utf-8")
+    )
     search_response = await search_components(
         query="展示台",
         project_path=str(tmp_path),

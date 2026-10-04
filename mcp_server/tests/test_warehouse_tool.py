@@ -137,4 +137,4 @@ class TestDefaultDownloadDir:
         assert "downloaded_models" in DEFAULT_DOWNLOAD_DIR
 
     def test_default_download_dir_is_absolute(self):
-        assert DEFAULT_DOWNLOAD_DIR.startswith("/")
+        assert Path(DEFAULT_DOWNLOAD_DIR).is_absolute()

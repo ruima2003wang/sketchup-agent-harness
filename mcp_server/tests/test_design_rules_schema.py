@@ -1,6 +1,7 @@
 """Tests for design_rules.json schema and helpers."""
 
 import json
+import shlex
 from pathlib import Path
 
 from mcp_server.resources.design_rules_schema import (
@@ -97,7 +98,9 @@ def test_create_designer_profile_writes_valid_profile(tmp_path):
     assert data is not None
     assert result["created"] is True
     assert result["path"] == str(profile_path)
-    assert result["shell_export"] == f"export {DESIGNER_PROFILE_ENV}={profile_path}"
+    assert result["shell_export"] == (
+        f"export {DESIGNER_PROFILE_ENV}={shlex.quote(str(profile_path))}"
+    )
     assert data["source"] == "designer_profile"
 
 

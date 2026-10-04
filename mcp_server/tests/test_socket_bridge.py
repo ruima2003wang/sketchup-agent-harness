@@ -93,6 +93,67 @@ class TestSyncSocketBridge:
 
 
 class TestTcpRoundTrip:
+    @pytest.mark.parametrize("bridge_type", [SocketBridge, SyncSocketBridge])
+    def test_receives_fragmented_large_unicode_response(self, bridge_type):
+        import socket as socket_module
+        import threading
+
+        response = {"jsonrpc": "2.0", "id": 1, "result": {"text": "中文模型" * 20000}}
+        raw = (json.dumps(response, ensure_ascii=False) + "\n").encode("utf-8")
+        with socket_module.socket(socket_module.AF_INET, socket_module.SOCK_STREAM) as server:
+            server.bind(("127.0.0.1", 0))
+            server.listen(1)
+            errors = []
+
+            def serve_once():
+                try:
+                    with server.accept()[0] as conn:
+                        conn.recv(65536)
+                        conn.sendall(raw[:52])
+                        time.sleep(0.03)
+                        conn.sendall(raw[52:])
+                except OSError as error:
+                    errors.append(error)
+
+            thread = threading.Thread(target=serve_once, daemon=True)
+            thread.start()
+            bridge = bridge_type(BridgeConfig(port=server.getsockname()[1], max_retries=1))
+            try:
+                send = bridge.send_and_wait if isinstance(bridge, SyncSocketBridge) else bridge.send
+                assert send({"jsonrpc": "2.0", "method": "snapshot", "id": 1}) == response
+                assert not bridge.is_connected
+            finally:
+                bridge.disconnect()
+                thread.join(timeout=5)
+            assert not thread.is_alive()
+            assert not errors
+
+    def test_sync_requests_reconnect_after_the_server_closes_each_response(self):
+        import socket as socket_module
+        import threading
+
+        with socket_module.socket(socket_module.AF_INET, socket_module.SOCK_STREAM) as server:
+            server.bind(("127.0.0.1", 0))
+            server.listen(2)
+            server.settimeout(3)
+
+            def serve():
+                for _ in range(2):
+                    with server.accept()[0] as conn:
+                        request = json.loads(conn.recv(65536))
+                        conn.sendall((json.dumps({"id": request["id"], "result": "ok"}) + "\n").encode())
+
+            thread = threading.Thread(target=serve, daemon=True)
+            thread.start()
+            bridge = SyncSocketBridge(BridgeConfig(port=server.getsockname()[1], max_retries=1))
+            try:
+                for request_id in (1, 2):
+                    assert bridge.send_and_wait({"method": "ping", "id": request_id}, timeout=2) == {"id": request_id, "result": "ok"}
+            finally:
+                bridge.disconnect()
+                thread.join(timeout=5)
+            assert not thread.is_alive()
+
     def test_send_over_loopback_tcp(self):
         """The client speaks JSON lines over a loopback TCP server."""
         import socket as socket_module

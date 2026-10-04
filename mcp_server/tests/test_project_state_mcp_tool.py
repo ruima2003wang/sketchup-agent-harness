@@ -1,6 +1,7 @@
 """Tests for project state MCP tools."""
 
 import json
+from pathlib import Path
 
 import pytest
 
@@ -21,8 +22,8 @@ async def test_get_project_state_reads_design_model(tmp_path):
     assert data["design_model_path"].endswith("design_model.json")
     assert data["project_files"]["assets_lock_path"].endswith("assets.lock.json")
     assert data["project_files"]["imports_path"].endswith("imports")
-    assert data["project_files"]["snapshot_manifest_path"].endswith(
-        "snapshots/manifest.json"
+    assert Path(data["project_files"]["snapshot_manifest_path"]) == (
+        tmp_path / "snapshots" / "manifest.json"
     )
     assert data["design_model"]["project_name"] == "State Test"
     assert "toilet_001" in data["design_model"]["components"]

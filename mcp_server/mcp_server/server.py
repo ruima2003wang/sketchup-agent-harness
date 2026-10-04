@@ -2,6 +2,7 @@
 
 import json
 import shutil
+import sys
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -5156,6 +5157,8 @@ async def copy_entity(
 
 def main() -> None:
     """Run the MCP server after all tools have been registered."""
+    if sys.argv[1:] == ["--startup-check"]:
+        return
     mcp.run()
 
 

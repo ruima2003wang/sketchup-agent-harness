@@ -15,7 +15,8 @@
 
   "mcpServers": {
     "sketchup-mcp": {
-      "command": "${CLAUDE_PLUGIN_ROOT}/mcp_server/start.sh"
+      "command": "uv",
+      "args": ["run", "--directory", "${CLAUDE_PLUGIN_ROOT}/mcp_server", "python", "-m", "mcp_server.server"]
     }
   }
 }

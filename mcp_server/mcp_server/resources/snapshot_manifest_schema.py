@@ -230,7 +230,7 @@ def snapshot_entry(
     output = Path(output_path)
     timestamp = created_at or utc_now()
     try:
-        relative_file = output.relative_to(root)
+        relative_file = output.relative_to(root).as_posix()
     except ValueError:
         relative_file = output
 
@@ -307,7 +307,7 @@ def render_artifact_entry(
     root = Path(project_path)
     artifact = Path(artifact_path)
     try:
-        file_value = str(artifact.relative_to(root))
+        file_value = artifact.relative_to(root).as_posix()
     except ValueError:
         file_value = str(artifact_path)
 
