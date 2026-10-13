@@ -85,7 +85,7 @@ async def test_capture_project_snapshot_records_manifest(monkeypatch, tmp_path):
         height=800,
         prompt="review this bathroom",
     )
-    data = json.loads(response.text)
+    data = json.loads(response.content[0].text)
     manifest = json.loads((tmp_path / "snapshots" / "manifest.json").read_text())
 
     assert bridge.request["params"]["operation_type"] == "capture_design"
@@ -172,7 +172,7 @@ async def test_prepare_render_brief_uses_project_truth_and_snapshot(
         width=1200,
         height=800,
     )
-    snapshot = json.loads(snapshot_response.text)["snapshot"]
+    snapshot = json.loads(snapshot_response.content[0].text)["snapshot"]
 
     response = await server.prepare_render_brief(
         project_path=str(tmp_path),

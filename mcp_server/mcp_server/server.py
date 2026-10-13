@@ -1,5 +1,6 @@
 """FastMCP entry point for SketchUp Agent Harness MCP server."""
 
+import base64
 import json
 import shutil
 import sys
@@ -7,7 +8,14 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 from mcp.server import Server
-from mcp.types import Tool, Resource, TextContent
+from mcp.types import (
+    CallToolResult,
+    ImageContent,
+    Resource,
+    TextContent,
+    Tool,
+    ToolAnnotations,
+)
 from mcp.server.fastmcp import FastMCP
 
 from mcp_server.tools import model_tools, query_tools, placement_tools
@@ -110,6 +118,9 @@ from mcp_server.tools.trace_executor import (
 
 # Create FastMCP server
 mcp = FastMCP("sketchup-mcp")
+
+# MCP tool hint for tools that only read bridge, project, or library state.
+READ_ONLY_ANNOTATIONS = ToolAnnotations(readOnlyHint=True)
 
 SPACE_TYPES = {
     "living_room",
@@ -1254,6 +1265,13 @@ def apply_rule_visual_action(
     return applied
 
 
+def capture_image_content(output_path: str | Path) -> ImageContent:
+    """Read a captured PNG file as a standard MCP image content block."""
+    with open(output_path, "rb") as handle:
+        data = base64.b64encode(handle.read()).decode("ascii")
+    return ImageContent(type="image", data=data, mimeType="image/png")
+
+
 @mcp.tool()
 async def launch_sketchup_bridge(
     sketchup_version: str | None = None,
@@ -1281,7 +1299,7 @@ async def launch_sketchup_bridge(
         return TextContent(type="text", text=f"SketchUp bridge launch failed: {str(e)}")
 
 
-@mcp.tool()
+@mcp.tool(annotations=READ_ONLY_ANNOTATIONS)
 async def get_bridge_info() -> TextContent:
     """Get live SketchUp bridge version and supported operation metadata."""
     bridge = SocketBridge()
@@ -1312,7 +1330,7 @@ async def get_bridge_info() -> TextContent:
         bridge.disconnect()
 
 
-@mcp.tool()
+@mcp.tool(annotations=READ_ONLY_ANNOTATIONS)
 async def get_scene_info() -> TextContent:
     """Get current SketchUp scene information.
 
@@ -1339,7 +1357,7 @@ async def get_scene_info() -> TextContent:
         bridge.disconnect()
 
 
-@mcp.tool()
+@mcp.tool(annotations=READ_ONLY_ANNOTATIONS)
 async def get_selection_info(limit: int = 100) -> TextContent:
     """Get current SketchUp selection information for component registration."""
     try:
@@ -1356,7 +1374,7 @@ async def get_selection_info(limit: int = 100) -> TextContent:
         return TextContent(type="text", text=f"Selection info failed: {str(e)}")
 
 
-@mcp.tool()
+@mcp.tool(annotations=READ_ONLY_ANNOTATIONS)
 async def get_design_rules(project_path: str) -> TextContent:
     """Read project-local design rules."""
     try:
@@ -1372,7 +1390,7 @@ async def get_design_rules(project_path: str) -> TextContent:
         return TextContent(type="text", text=f"Design rules failed: {str(e)}")
 
 
-@mcp.tool()
+@mcp.tool(annotations=READ_ONLY_ANNOTATIONS)
 async def get_designer_profile_status(profile_path: str | None = None) -> TextContent:
     """Read reusable designer profile status without mutating it."""
     try:
@@ -1732,7 +1750,7 @@ async def set_designer_profile_preference(
         )
 
 
-@mcp.tool()
+@mcp.tool(annotations=READ_ONLY_ANNOTATIONS)
 async def get_project_state(
     project_path: str,
     include_rules: bool = True,
@@ -1980,7 +1998,7 @@ async def import_floorplan_to_model(
         return TextContent(type="text", text=f"Floorplan import failed: {str(e)}")
 
 
-@mcp.tool()
+@mcp.tool(annotations=READ_ONLY_ANNOTATIONS)
 async def get_import_summary(
     project_path: str,
     import_id: str | None = None,
@@ -2026,7 +2044,7 @@ async def validate_import_source_constraints(
         )
 
 
-@mcp.tool()
+@mcp.tool(annotations=READ_ONLY_ANNOTATIONS)
 async def list_import_sessions(
     project_path: str,
 ) -> TextContent:
@@ -2461,7 +2479,7 @@ async def set_project_space(
         return TextContent(type="text", text=f"Project space failed: {str(e)}")
 
 
-@mcp.tool()
+@mcp.tool(annotations=READ_ONLY_ANNOTATIONS)
 async def list_project_components(
     project_path: str,
     include_lighting: bool = True,
@@ -2907,7 +2925,7 @@ async def capture_design(
     width: int = 1920,
     height: int = 1080,
     return_base64: bool = False,
-) -> TextContent:
+) -> CallToolResult:
     """Capture the current design view to an image file.
 
     Args:
@@ -2915,10 +2933,10 @@ async def capture_design(
         view_preset: Optional view preset to set before capture
         width: Image width in pixels
         height: Image height in pixels
-        return_base64: If True, return base64 encoded image for Claude vision
+        return_base64: If True, return the capture as an MCP image block
 
     Returns:
-        Capture info including base64 image if requested.
+        Capture metadata as text and, when requested, the image block.
     """
     bridge = SocketBridge()
     try:
@@ -2941,22 +2959,35 @@ async def capture_design(
         )
         response = bridge.send(request.to_dict())
         if "error" in response:
-            return TextContent(type="text", text=f"Error: {response['error']['message']}")
+            return CallToolResult(
+                content=[
+                    TextContent(
+                        type="text",
+                        text=f"Error: {response['error']['message']}",
+                    )
+                ]
+            )
 
-        result = response.get("result", {})
-        capture_info = result.get("capture_info", {})
+        capture_info = response.get("result", {}).get("capture_info", {})
+        metadata = {
+            "width": capture_info.get("width", width),
+            "height": capture_info.get("height", height),
+            "view_preset": capture_info.get("view_preset", view_preset),
+        }
 
-        # If base64 requested, read the file and encode
+        image_content: ImageContent | None = None
         if return_base64:
-            import base64
             try:
-                with open(output_path, "rb") as f:
-                    img_data = base64.b64encode(f.read()).decode("utf-8")
-                capture_info["image_base64"] = img_data
-            except Exception as e:
-                capture_info["image_base64_error"] = str(e)
+                image_content = capture_image_content(output_path)
+            except OSError as error:
+                metadata["image_error"] = str(error)
 
-        return TextContent(type="text", text=str(capture_info))
+        content: list[TextContent | ImageContent] = [
+            TextContent(type="text", text=json.dumps(metadata, ensure_ascii=False))
+        ]
+        if image_content is not None:
+            content.append(image_content)
+        return CallToolResult(content=content)
     finally:
         bridge.disconnect()
 
@@ -2970,7 +3001,7 @@ async def capture_project_snapshot(
     height: int = 1080,
     return_base64: bool = False,
     prompt: str | None = None,
-) -> TextContent:
+) -> CallToolResult:
     """Capture a project snapshot and record provenance.
 
     Args:
@@ -2979,11 +3010,12 @@ async def capture_project_snapshot(
         label: Optional filename-safe label. Defaults to view preset.
         width: Image width in pixels.
         height: Image height in pixels.
-        return_base64: If True, return base64 encoded image for vision review.
+        return_base64: If True, return the snapshot as an MCP image block.
         prompt: Optional user prompt that requested this visual artifact.
 
     Returns:
-        JSON string with capture info and the snapshot manifest entry.
+        Text with capture info and the snapshot manifest entry, plus the image
+        block when requested.
     """
     output_path = snapshot_output_path(
         project_path=project_path,
@@ -3013,19 +3045,28 @@ async def capture_project_snapshot(
         )
         response = bridge.send(request.to_dict())
         if "error" in response:
-            return TextContent(type="text", text=f"Error: {response['error']['message']}")
+            return CallToolResult(
+                content=[
+                    TextContent(
+                        type="text",
+                        text=f"Error: {response['error']['message']}",
+                    )
+                ]
+            )
 
-        result = response.get("result", {})
-        capture_info = result.get("capture_info", {})
+        capture_info = response.get("result", {}).get("capture_info", {})
+        metadata = {
+            "width": capture_info.get("width", width),
+            "height": capture_info.get("height", height),
+            "view_preset": capture_info.get("view_preset", view_preset),
+        }
 
+        image_content: ImageContent | None = None
         if return_base64:
-            import base64
             try:
-                with open(output_path, "rb") as f:
-                    img_data = base64.b64encode(f.read()).decode("utf-8")
-                capture_info["image_base64"] = img_data
-            except Exception as e:
-                capture_info["image_base64_error"] = str(e)
+                image_content = capture_image_content(output_path)
+            except OSError as error:
+                metadata["image_error"] = str(error)
 
         entry = snapshot_entry(
             project_path=project_path,
@@ -3038,14 +3079,19 @@ async def capture_project_snapshot(
         append_snapshot_entry(project_path, entry)
 
         response_payload = {
-            "capture_info": capture_info,
+            "capture_info": metadata,
             "snapshot": entry,
             "manifest_path": str(snapshot_manifest_path(project_path)),
         }
-        return TextContent(
-            type="text",
-            text=json.dumps(response_payload, ensure_ascii=False),
-        )
+        content: list[TextContent | ImageContent] = [
+            TextContent(
+                type="text",
+                text=json.dumps(response_payload, ensure_ascii=False),
+            )
+        ]
+        if image_content is not None:
+            content.append(image_content)
+        return CallToolResult(content=content)
     finally:
         bridge.disconnect()
 
@@ -3166,7 +3212,7 @@ async def record_visual_feedback(
         return TextContent(type="text", text=f"Visual feedback failed: {str(e)}")
 
 
-@mcp.tool()
+@mcp.tool(annotations=READ_ONLY_ANNOTATIONS)
 async def list_visual_feedback(project_path: str) -> TextContent:
     """List advisory visual feedback reviews for a project."""
     try:
@@ -3615,7 +3661,7 @@ async def create_stairs(
         bridge.disconnect()
 
 
-@mcp.tool()
+@mcp.tool(annotations=READ_ONLY_ANNOTATIONS)
 async def search_local_library(
     query: str,
     category: str | None = None,
@@ -3651,7 +3697,7 @@ async def search_local_library(
         return TextContent(type="text", text=f"Search failed: {str(e)}")
 
 
-@mcp.tool()
+@mcp.tool(annotations=READ_ONLY_ANNOTATIONS)
 async def search_components(
     query: str,
     category: str | None = None,
@@ -3688,7 +3734,7 @@ async def search_components(
         return TextContent(type="text", text=f"Component search failed: {str(e)}")
 
 
-@mcp.tool()
+@mcp.tool(annotations=READ_ONLY_ANNOTATIONS)
 async def get_component_manifest(
     component_id: str,
     project_path: str | None = None,
@@ -4529,7 +4575,7 @@ async def save_sketchup_model(
         return TextContent(type="text", text=f"SketchUp model save failed: {str(e)}")
 
 
-@mcp.tool()
+@mcp.tool(annotations=READ_ONLY_ANNOTATIONS)
 async def list_local_library_categories(project_path: str | None = None) -> TextContent:
     """List all available categories in the local component library.
 
@@ -4691,7 +4737,7 @@ async def save_project_version(
         return TextContent(type="text", text=f"Project version failed: {str(e)}")
 
 
-@mcp.tool()
+@mcp.tool(annotations=READ_ONLY_ANNOTATIONS)
 async def list_project_versions(project_path: str) -> TextContent:
     """List project-local structured truth versions."""
     try:
@@ -4783,7 +4829,7 @@ async def save_version(
         return TextContent(type="text", text=f"Project version failed: {str(e)}")
 
 
-@mcp.tool()
+@mcp.tool(annotations=READ_ONLY_ANNOTATIONS)
 async def list_versions(project_name: str, project_dir: str = "./designs") -> TextContent:
     """Compatibility alias for listing structured project truth versions.
 
