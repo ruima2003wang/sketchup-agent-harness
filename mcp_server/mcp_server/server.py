@@ -88,6 +88,7 @@ from mcp_server.tools.facade_tools import (
     floor_stack_boxes,
     preset_color,
 )
+from mcp_server.tools.exterior_plan import build_exterior_plan
 from mcp_server.tools.project_executor import (
     bridge_operation_for_component_instance,
     build_project_execution_plan,
@@ -2917,6 +2918,123 @@ async def create_floor_stack(
                 "slab_entities": created.get("slabs", []),
                 "slab_count": plan["slab_count"],
                 "derived": plan["derived"],
+                "assumptions": plan["assumptions"],
+                "quality_flags": plan["quality_flags"],
+            },
+            ensure_ascii=False,
+            indent=2,
+        ),
+    )
+
+
+def _group_boxes_by_preset(
+    boxes: list[dict[str, Any]],
+) -> list[tuple[str, list[dict[str, Any]], str]]:
+    """Group planned boxes by material preset so each material is applied once."""
+    grouped: dict[str, list[dict[str, Any]]] = {}
+    for box in boxes:
+        grouped.setdefault(box["preset"], []).append(
+            {key: box[key] for key in ("corner", "width", "depth", "height")}
+        )
+    return [
+        (preset, group, EXTERIOR_MATERIAL_PRESETS[preset]["color"])
+        for preset, group in sorted(grouped.items())
+    ]
+
+
+def _camera_request(camera: dict[str, Any]) -> dict[str, Any]:
+    """Build a bridge set_camera_view request from a spec camera block."""
+    units = str(camera.get("coordinate_units", "mm"))
+    scale = 1 / 25.4 if units == "mm" else 1.0
+    payload: dict[str, Any] = {
+        "view_preset": camera.get("view_preset"),
+        "eye": [float(value) * scale for value in camera["eye"]],
+        "target": [float(value) * scale for value in camera["target"]],
+    }
+    if camera.get("up"):
+        payload["up"] = [float(value) for value in camera["up"]]
+    return JsonRpcRequest(
+        method="execute_operation",
+        params={
+            "operation_id": f"exterior_camera_{id(camera)}",
+            "operation_type": "set_camera_view",
+            "payload": payload,
+            "rollback_on_failure": False,
+        },
+    ).to_dict()
+
+
+@mcp.tool()
+async def create_exterior(spec: dict[str, Any]) -> TextContent:
+    """Build a whole building exterior from one parameter spec, then report what to check.
+
+    Fill the spec from the reference image, call this once per attempt, capture the view and
+    compare it with the image against the returned checklist. Iterate by editing the spec and
+    calling again — never by moving single boxes.
+
+    Spec: {"elements": [...], "camera": {"eye": [x, y, z], "target": [x, y, z]}} with elements
+    - tower: x, y, width, depth, floors, floor_height, bays_x, bays_y, crown, base_ring_z,
+      glass_preset, frame_preset
+    - podium: x, y, width, depth, floors, floor_height, bays, glazed_ground, parapet,
+      band_height, solid_preset, frame_preset, glass_preset
+    - ribbon_block: x, y, width, depth, floors, floor_height, ribbon_levels, bays,
+      panel {width, height, offset_x}, glass_preset, solid_preset
+    - colonnade: x_start, y, count, spacing, size, height, preset
+    """
+    try:
+        plan = build_exterior_plan(spec)
+    except FacadeParameterError as error:
+        return TextContent(
+            type="text",
+            text=f"Error: {error}. Presets: {', '.join(sorted(EXTERIOR_MATERIAL_PRESETS))}",
+        )
+
+    unknown = sorted({box["preset"] for box in plan["boxes"]} - set(EXTERIOR_MATERIAL_PRESETS))
+    if unknown:
+        return TextContent(
+            type="text",
+            text=(
+                f"Error: unknown material preset(s) {', '.join(unknown)}. "
+                f"Presets: {', '.join(sorted(EXTERIOR_MATERIAL_PRESETS))}"
+            ),
+        )
+
+    try:
+        created = await _create_boxes_with_material(_group_boxes_by_preset(plan["boxes"]))
+    except RuntimeError as error:
+        return TextContent(type="text", text=f"Error: {error}")
+
+    camera_error = None
+    if plan["camera"]:
+        bridge = SocketBridge()
+        try:
+            bridge.connect()
+            response = bridge.send(_camera_request(plan["camera"]))
+            if "error" in response:
+                camera_error = str(response["error"].get("message"))
+        finally:
+            bridge.disconnect()
+
+    return TextContent(
+        type="text",
+        text=json.dumps(
+            {
+                "status": "created",
+                "box_count": plan["derived"]["box_count"],
+                "entities_by_preset": {preset: len(ids) for preset, ids in created.items()},
+                "elements": [
+                    {
+                        "kind": item["kind"],
+                        "id": item["id"],
+                        "height": item["height"],
+                        "top_z": item["top_z"],
+                    }
+                    for item in plan["elements"]
+                ],
+                "derived": plan["derived"],
+                "camera": plan["camera"],
+                "camera_error": camera_error,
+                "checklist": plan["checklist"],
                 "assumptions": plan["assumptions"],
                 "quality_flags": plan["quality_flags"],
             },

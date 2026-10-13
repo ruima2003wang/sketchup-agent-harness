@@ -14,10 +14,12 @@ produces the geometry — never place mullions one by one.
 
 ## Tools
 
-- `create_box` — massing volumes (tower body, podium, low block, columns, crown bands).
-- `create_facade_grid` — one facade face: glass plane + vertical mullions + horizontal transoms,
-  from `bays` / `floors`. Call it once per face (`axis` "x"/"y", `outward` 1/-1).
-- `create_floor_stack` — floor slabs plus roof for exposed bands (podium roofs, terraces, decks).
+- `create_exterior` — **the one call that builds the whole building**: pass the parameter spec
+  (elements + camera) and get every volume, facade grid, band and column in one shot, plus the
+  checklist to compare against the reference. Iterate by editing the spec, not by moving boxes.
+- `create_box` — single volume when the spec does not cover it (canopies, roof equipment).
+- `create_facade_grid` / `create_floor_stack` — one face / one floor band, when only part of the
+  model needs them.
 - `apply_material` — with `preset` for exterior materials.
 - `set_camera_view`, `capture_design`, `save_sketchup_model` — look, compare, deliver.
 - `cleanup_model`, `move_entity`, `scale_entity`, `copy_entity` — correct and repeat.
@@ -25,6 +27,22 @@ produces the geometry — never place mullions one by one.
 Facade material presets: `glass_dark`, `glass_mid`, `glass_light`; frame presets:
 `frame_white`, `frame_light_gray`, `metal_gray`, `panel_dark`, `panel_wood`, `stone_light`,
 `concrete`. Glass is opaque in SketchUp today (no alpha support in the bridge).
+
+## Spec shape
+
+```json
+{"elements": [
+  {"kind": "tower", "id": "tower_a", "x": 20000, "y": 3000, "width": 20000, "depth": 16000,
+   "floors": 19, "floor_height": 3600, "bays_x": 8, "bays_y": 6, "base_ring_z": 9000},
+  {"kind": "podium", "x": 0, "y": 0, "width": 70000, "depth": 20000, "floors": 2,
+   "floor_height": 4500, "bays": 20, "glazed_ground": true, "parapet": true},
+  {"kind": "ribbon_block", "x": -30000, "y": 0, "width": 28000, "depth": 16000, "floors": 3,
+   "floor_height": 3600, "ribbon_levels": [2, 3],
+   "panel": {"width": 16000, "height": 3200, "offset_x": 4000}},
+  {"kind": "colonnade", "x_start": 2000, "y": 300, "count": 10, "spacing": 6500,
+   "size": 700, "height": 4500}],
+ "camera": {"eye": [-70000, -112000, 42000], "target": [17000, 8000, 28000]}}
+```
 
 ## Parameter table (defaults to read from the image or ask the user)
 
@@ -50,16 +68,14 @@ parameter, do not force it.
    podium floors, colonnade spacing, material split (dark glass / white frame / gray ground).
 2. Confirm or ask for one real dimension (total height, floors, or footprint). Without it the
    result is scale-assumed and must be reported as such.
-3. Massing: one `create_box` per volume, dark glass volumes colored `glass_dark`.
-4. Facade: `create_facade_grid` on each visible face. Bay count = floor(width / bay_width);
-   floor count = rounds(height / floor_height).
-5. Bands: `create_box` for tower crown and base rings (`frame_white`), parapets, and the
-   colonnade columns (`metal_gray`).
-6. `set_camera_view` to the reference's angle, `capture_design`, then compare with the image:
-   proportions, floor rows, band positions, colonnade rhythm. Fix parameters and re-run the
-   generator — do not nudge individual boxes.
-7. `save_sketchup_model` when the view matches, and report assumptions (scale, floors, bay
-   width) plus what is massing-level rather than measured.
+3. Fill the spec: one element per volume, `bays` ≈ width / 2500 mm, `floors` =
+   rounds(height / floor_height). Call `create_exterior` **once**.
+4. `capture_design`, then walk the returned `checklist` against the image line by line:
+   floor rows, bay rhythm, band positions, colonnade spacing, material split.
+5. Fix the spec (numbers only — never move single boxes) and call `create_exterior` again.
+   Two rounds is the normal budget; stop when the checklist matches.
+6. `save_sketchup_model` and report assumptions (scale, floors, bay width) plus what is
+   massing-level rather than measured.
 
 ## Boundaries
 

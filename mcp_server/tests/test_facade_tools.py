@@ -103,6 +103,16 @@ def test_facade_grid_rejects_out_of_range_and_nonsense():
         facade_grid_boxes(**{**TOWER_FACADE, "frame_depth": 5000})
 
 
+def test_facade_grid_allows_partial_height_bands():
+    # A ribbon band is shorter than a floor: the bay rhythm still applies, the
+    # floor-height range does not.
+    plan = facade_grid_boxes(**{**TOWER_FACADE, "height": 1_620.0, "floors": 1, "floor_scale": False})
+
+    assert plan["derived"]["floor_height"] == pytest.approx(1_620.0)
+    with pytest.raises(FacadeParameterError, match="floor_height"):
+        facade_grid_boxes(**{**TOWER_FACADE, "height": 1_620.0, "floors": 1})
+
+
 def test_floor_stack_places_slabs_and_roof():
     plan = floor_stack_boxes(
         origin_x=0.0,

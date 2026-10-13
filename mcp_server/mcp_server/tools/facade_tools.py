@@ -19,16 +19,16 @@ from typing import Any
 # plus a bridge reinstall/reload, so facade glass stays opaque here.
 # --------------------------------------------------------------------------------------
 EXTERIOR_MATERIAL_PRESETS: dict[str, dict[str, str]] = {
-    "glass_dark": {"color": "#1F2A33", "description": "深色玻璃幕墙"},
-    "glass_mid": {"color": "#2E3A42", "description": "中深色玻璃"},
-    "glass_light": {"color": "#8FA9B8", "description": "浅色反射玻璃"},
-    "frame_white": {"color": "#EFEFEC", "description": "白色幕墙框/竖挺"},
-    "frame_light_gray": {"color": "#D9D9D5", "description": "浅灰金属框"},
-    "metal_gray": {"color": "#B9B9B6", "description": "灰色金属（柱、栏杆）"},
-    "stone_light": {"color": "#DDDAD2", "description": "浅石材/涂料"},
-    "panel_dark": {"color": "#3A3F44", "description": "深色板材（深色幕墙板、门头）"},
-    "panel_wood": {"color": "#C4A77D", "description": "木饰面/木色格栅"},
-    "concrete": {"color": "#B8B5B0", "description": "清水混凝土"},
+    "glass_dark": {"color": "#1F2A33", "description": "dark glass curtain wall"},
+    "glass_mid": {"color": "#2E3A42", "description": "mid dark glass"},
+    "glass_light": {"color": "#8FA9B8", "description": "light reflective glass"},
+    "frame_white": {"color": "#EFEFEC", "description": "white facade frame"},
+    "frame_light_gray": {"color": "#D9D9D5", "description": "light gray metal frame"},
+    "metal_gray": {"color": "#B9B9B6", "description": "gray metal (columns, railings)"},
+    "stone_light": {"color": "#DDDAD2", "description": "light stone or render"},
+    "panel_dark": {"color": "#3A3F44", "description": "dark panel"},
+    "panel_wood": {"color": "#C4A77D", "description": "wood finish"},
+    "concrete": {"color": "#B8B5B0", "description": "fair-faced concrete"},
 }
 
 # --------------------------------------------------------------------------------------
@@ -60,12 +60,24 @@ FLOOR_STACK_LIMITS: dict[str, tuple[float, float]] = {
     "overhang": (0.0, 5_000.0),
 }
 
+# Element-level ranges used by the composite exterior builder.
+ELEMENT_LIMITS: dict[str, tuple[float, float]] = {
+    "count": (1, 80),
+    "crown_height": (300.0, 6_000.0),
+    "band_height": (200.0, 6_000.0),
+    "parapet_height": (200.0, 3_000.0),
+    "spacing": (500.0, 20_000.0),
+    "size": (100.0, 3_000.0),
+    "height": (300.0, 500_000.0),
+    "ribbon_level": (0, 80),
+}
+
 
 class FacadeParameterError(ValueError):
     """A parameter is outside the verified range, or the combination is nonsensical."""
 
 
-def _check_range(name: str, value: float, limits: dict[str, tuple[float, float]]) -> None:
+def check_range(name: str, value: float, limits: dict[str, tuple[float, float]]) -> None:
     low, high = limits[name]
     if value < low or value > high:
         raise FacadeParameterError(
@@ -73,7 +85,7 @@ def _check_range(name: str, value: float, limits: dict[str, tuple[float, float]]
         )
 
 
-def _check_int_range(name: str, value: int, limits: dict[str, tuple[float, float]]) -> None:
+def check_int_range(name: str, value: int, limits: dict[str, tuple[float, float]]) -> None:
     low, high = limits[name]
     if value < low or value > high:
         raise FacadeParameterError(
@@ -113,31 +125,35 @@ def facade_grid_boxes(
     transom_height: float = 140.0,
     frame_depth: float = 60.0,
     glass_inset: float = 90.0,
+    floor_scale: bool = True,
 ) -> dict[str, Any]:
     """Plan one curtain-wall face: a glass plane plus its mullion and transom grid.
 
     ``axis`` is the direction the facade runs ("x" or "y"); ``outward`` (+1/-1) is the
     side the frame protrudes toward, so the caller can dress all four faces of a mass.
-    Returns box payloads ready for the bridge's ``create_box`` operation.
+    ``floor_scale=False`` is for partial-height bands (ribbon windows): the bay rhythm
+    still applies, but the band is not a full floor, so the floor-height range is not
+    checked against it. Returns box payloads ready for the bridge's ``create_box``.
     """
     if axis not in {"x", "y"}:
         raise FacadeParameterError('axis must be "x" or "y"')
     if outward not in {1, -1}:
         raise FacadeParameterError("outward must be 1 or -1")
 
-    _check_range("width", float(width), FACADE_LIMITS)
-    _check_range("height", float(height), FACADE_LIMITS)
-    _check_range("mullion_width", float(mullion_width), FACADE_LIMITS)
-    _check_range("transom_height", float(transom_height), FACADE_LIMITS)
-    _check_range("frame_depth", float(frame_depth), FACADE_LIMITS)
-    _check_range("glass_inset", float(glass_inset), FACADE_LIMITS)
-    _check_int_range("bays", int(bays), FACADE_LIMITS)
-    _check_int_range("floors", int(floors), FACADE_LIMITS)
+    check_range("width", float(width), FACADE_LIMITS)
+    check_range("height", float(height), FACADE_LIMITS)
+    check_range("mullion_width", float(mullion_width), FACADE_LIMITS)
+    check_range("transom_height", float(transom_height), FACADE_LIMITS)
+    check_range("frame_depth", float(frame_depth), FACADE_LIMITS)
+    check_range("glass_inset", float(glass_inset), FACADE_LIMITS)
+    check_int_range("bays", int(bays), FACADE_LIMITS)
+    check_int_range("floors", int(floors), FACADE_LIMITS)
 
     bay_width = float(width) / int(bays)
     floor_height = float(height) / int(floors)
-    _check_range("bay_width", bay_width, FACADE_DERIVED_LIMITS)
-    _check_range("floor_height", floor_height, FACADE_DERIVED_LIMITS)
+    check_range("bay_width", bay_width, FACADE_DERIVED_LIMITS)
+    if floor_scale:
+        check_range("floor_height", floor_height, FACADE_DERIVED_LIMITS)
 
     frame_start = float(origin_x) if axis == "x" else float(origin_y)
     frame_plane = float(origin_y) if axis == "x" else float(origin_x)
@@ -226,12 +242,12 @@ def floor_stack_boxes(
     overhang: float = 0.0,
 ) -> dict[str, Any]:
     """Plan a stack of floor slabs (and the roof slab) for one footprint."""
-    _check_range("width", float(width), FLOOR_STACK_LIMITS)
-    _check_range("depth", float(depth), FLOOR_STACK_LIMITS)
-    _check_range("floor_height", float(floor_height), FLOOR_STACK_LIMITS)
-    _check_range("slab_thickness", float(slab_thickness), FLOOR_STACK_LIMITS)
-    _check_range("overhang", float(overhang), FLOOR_STACK_LIMITS)
-    _check_int_range("floors", int(floors), FLOOR_STACK_LIMITS)
+    check_range("width", float(width), FLOOR_STACK_LIMITS)
+    check_range("depth", float(depth), FLOOR_STACK_LIMITS)
+    check_range("floor_height", float(floor_height), FLOOR_STACK_LIMITS)
+    check_range("slab_thickness", float(slab_thickness), FLOOR_STACK_LIMITS)
+    check_range("overhang", float(overhang), FLOOR_STACK_LIMITS)
+    check_int_range("floors", int(floors), FLOOR_STACK_LIMITS)
 
     slabs: list[dict[str, Any]] = []
     for level in range(1, int(floors) + 1):
