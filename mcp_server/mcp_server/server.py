@@ -81,6 +81,13 @@ from mcp_server.tools.bathroom_planner import (
     plan_bathroom_project,
     save_bathroom_plan,
 )
+from mcp_server.tools.facade_tools import (
+    EXTERIOR_MATERIAL_PRESETS,
+    FacadeParameterError,
+    facade_grid_boxes,
+    floor_stack_boxes,
+    preset_color,
+)
 from mcp_server.tools.project_executor import (
     bridge_operation_for_component_instance,
     build_project_execution_plan,
@@ -2665,6 +2672,260 @@ async def create_box(
         bridge.disconnect()
 
 
+def _create_box_request(box: dict[str, Any], tag: str) -> dict[str, Any]:
+    """Build one bridge create_box request from a planner payload."""
+    corner = box["corner"]
+    request = JsonRpcRequest(
+        method="execute_operation",
+        params={
+            "operation_id": f"{tag}_{id(box)}",
+            "operation_type": "create_box",
+            "payload": {
+                "corner": [corner[0], corner[1], corner[2]],
+                "width": box["width"],
+                "depth": box["depth"],
+                "height": box["height"],
+            },
+            "rollback_on_failure": True,
+        },
+    )
+    return request.to_dict()
+
+
+def _apply_material_request(entity_ids: list[str], color: str, tag: str) -> dict[str, Any]:
+    """Build one bridge apply_material request for a color."""
+    request = JsonRpcRequest(
+        method="execute_operation",
+        params={
+            "operation_id": f"{tag}_material_{id(entity_ids)}",
+            "operation_type": "apply_material",
+            "payload": {"entity_ids": entity_ids, "color": color},
+            "rollback_on_failure": True,
+        },
+    )
+    return request.to_dict()
+
+
+async def _create_boxes_with_material(
+    groups: list[tuple[str, list[dict[str, Any]], str | None]],
+) -> dict[str, Any]:
+    """Create every planned box, then apply one material per group.
+
+    Each ``create_box`` is its own bridge transaction, so a failure part-way keeps the boxes
+    already created; the summary reports how many were made before the error.
+    """
+    bridge = SocketBridge()
+    created: dict[str, list[str]] = {}
+    try:
+        bridge.connect()
+        for label, boxes, color in groups:
+            ids: list[str] = []
+            for box in boxes:
+                response = bridge.send(_create_box_request(box, f"{label}_box"))
+                if "error" in response:
+                    raise RuntimeError(
+                        f"{label} box {len(ids) + 1}/{len(boxes)} failed: "
+                        f"{response['error'].get('message')} (created {len(ids)} of {len(boxes)})"
+                    )
+                ids.extend(response.get("result", {}).get("entity_ids", []))
+            if color and ids:
+                response = bridge.send(_apply_material_request(ids, color, label))
+                if "error" in response:
+                    raise RuntimeError(
+                        f"{label} material failed: {response['error'].get('message')} "
+                        f"({len(ids)} entities created)"
+                    )
+            created[label] = ids
+        return created
+    finally:
+        bridge.disconnect()
+
+
+@mcp.tool()
+async def create_facade_grid(
+    origin_x: float,
+    origin_y: float,
+    origin_z: float,
+    width: float,
+    height: float,
+    axis: str,
+    outward: int,
+    bays: int,
+    floors: int,
+    mullion_width: float = 80,
+    transom_height: float = 140,
+    frame_depth: float = 60,
+    glass_inset: float = 90,
+    glass_preset: str = "glass_dark",
+    frame_preset: str = "frame_white",
+) -> TextContent:
+    """Generate a curtain-wall grid (glass plane + mullions + transoms) on one facade.
+
+    Call it once per facade of a mass (axis "x" or "y" plus outward 1/-1 picks the side).
+    The grid is massing-level: one glass plane recessed behind a frame of vertical mullions
+    and horizontal transoms, one box per mullion/transom.
+
+    Args:
+        origin_x, origin_y, origin_z: corner of the facade plane in mm (bottom-left)
+        width: facade length along `axis`, mm
+        height: facade height, mm
+        axis: "x" or "y" — the direction the facade runs
+        outward: 1 or -1 — the side the frame protrudes toward
+        bays: bays (vertical divisions) along the facade
+        floors: floors (horizontal divisions)
+        mullion_width: vertical mullion width, mm
+        transom_height: horizontal transom height, mm
+        frame_depth: how far the frame protrudes from the plane, mm
+        glass_inset: how far glass is recessed behind the frame, mm
+        glass_preset: material preset, one of glass_dark, glass_mid, glass_light
+        frame_preset: material preset, one of frame_white, frame_light_gray, metal_gray,
+            panel_dark, panel_wood, stone_light, concrete
+    """
+    try:
+        plan = facade_grid_boxes(
+            origin_x=origin_x,
+            origin_y=origin_y,
+            origin_z=origin_z,
+            width=width,
+            height=height,
+            axis=axis,
+            outward=outward,
+            bays=bays,
+            floors=floors,
+            mullion_width=mullion_width,
+            transom_height=transom_height,
+            frame_depth=frame_depth,
+            glass_inset=glass_inset,
+        )
+    except FacadeParameterError as error:
+        return TextContent(
+            type="text",
+            text=f"Error: {error}. Presets: {', '.join(sorted(EXTERIOR_MATERIAL_PRESETS))}",
+        )
+
+    glass_color = preset_color(glass_preset)
+    frame_color = preset_color(frame_preset)
+    for name, value, color in (
+        ("glass_preset", glass_preset, glass_color),
+        ("frame_preset", frame_preset, frame_color),
+    ):
+        if color is None:
+            return TextContent(
+                type="text",
+                text=(
+                    f"Error: unknown {name} {value!r}. "
+                    f"Presets: {', '.join(sorted(EXTERIOR_MATERIAL_PRESETS))}"
+                ),
+            )
+
+    try:
+        created = await _create_boxes_with_material(
+            [
+                ("glass", plan["glass_boxes"], glass_color),
+                ("frame", plan["frame_boxes"], frame_color),
+            ]
+        )
+    except RuntimeError as error:
+        return TextContent(type="text", text=f"Error: {error}")
+
+    return TextContent(
+        type="text",
+        text=json.dumps(
+            {
+                "status": "created",
+                "glass_entities": created.get("glass", []),
+                "frame_entities": created.get("frame", []),
+                "mullion_count": plan["mullion_count"],
+                "transom_count": plan["transom_count"],
+                "derived": plan["derived"],
+                "assumptions": plan["assumptions"],
+                "quality_flags": plan["quality_flags"],
+            },
+            ensure_ascii=False,
+            indent=2,
+        ),
+    )
+
+
+@mcp.tool()
+async def create_floor_stack(
+    origin_x: float,
+    origin_y: float,
+    origin_z: float,
+    width: float,
+    depth: float,
+    floors: int,
+    floor_height: float,
+    slab_thickness: float = 200,
+    overhang: float = 0,
+    material_preset: str = "stone_light",
+) -> TextContent:
+    """Generate a stack of floor slabs plus the roof slab for one footprint.
+
+    Use it for exposed floor bands (podium roofs, terraces, parking decks). For a glass
+    tower the transoms of create_facade_grid already read as floor lines.
+
+    Args:
+        origin_x, origin_y, origin_z: footprint corner in mm
+        width, depth: footprint size in mm
+        floors: number of floors (a slab is created at every level, roof included)
+        floor_height: floor-to-floor height in mm
+        slab_thickness: slab thickness in mm
+        overhang: how far each slab projects beyond the footprint, mm
+        material_preset: material preset (see create_facade_grid for the list)
+    """
+    try:
+        plan = floor_stack_boxes(
+            origin_x=origin_x,
+            origin_y=origin_y,
+            origin_z=origin_z,
+            width=width,
+            depth=depth,
+            floors=floors,
+            floor_height=floor_height,
+            slab_thickness=slab_thickness,
+            overhang=overhang,
+        )
+    except FacadeParameterError as error:
+        return TextContent(
+            type="text",
+            text=f"Error: {error}. Presets: {', '.join(sorted(EXTERIOR_MATERIAL_PRESETS))}",
+        )
+
+    slab_color = preset_color(material_preset)
+    if slab_color is None:
+        return TextContent(
+            type="text",
+            text=(
+                f"Error: unknown material_preset {material_preset!r}. "
+                f"Presets: {', '.join(sorted(EXTERIOR_MATERIAL_PRESETS))}"
+            ),
+        )
+
+    try:
+        created = await _create_boxes_with_material(
+            [("slabs", plan["slab_boxes"], slab_color)]
+        )
+    except RuntimeError as error:
+        return TextContent(type="text", text=f"Error: {error}")
+
+    return TextContent(
+        type="text",
+        text=json.dumps(
+            {
+                "status": "created",
+                "slab_entities": created.get("slabs", []),
+                "slab_count": plan["slab_count"],
+                "derived": plan["derived"],
+                "assumptions": plan["assumptions"],
+                "quality_flags": plan["quality_flags"],
+            },
+            ensure_ascii=False,
+            indent=2,
+        ),
+    )
+
+
 @mcp.tool()
 async def place_component(
     component_name: str,
@@ -2721,6 +2982,7 @@ async def apply_material(
     entity_ids: list[str],
     color: str | None = None,
     material_id: str | None = None,
+    preset: str | None = None,
     texture_scale_x: int | None = None,
     texture_scale_y: int | None = None,
 ) -> TextContent:
@@ -2730,9 +2992,23 @@ async def apply_material(
         entity_ids: List of entity IDs to apply material to
         color: Hex color (e.g., "#C67B5C") or RGB array [r, g, b]
         material_id: Optional SketchUp material name
+        preset: Exterior material preset; sets the color unless `color` is given.
+            One of: glass_dark, glass_mid, glass_light, frame_white, frame_light_gray,
+            metal_gray, stone_light, panel_dark, panel_wood, concrete
         texture_scale_x: Texture scale X in mm
         texture_scale_y: Texture scale Y in mm
     """
+    if preset and not color:
+        resolved = preset_color(preset)
+        if resolved is None:
+            return TextContent(
+                type="text",
+                text=(
+                    f"Error: unknown material preset {preset!r}. "
+                    f"Presets: {', '.join(sorted(EXTERIOR_MATERIAL_PRESETS))}"
+                ),
+            )
+        color = resolved
     bridge = SocketBridge()
     try:
         bridge.connect()
