@@ -6,14 +6,9 @@
   ],
   "protocol": "mcp",
   "mcp": {
-    "command": "uv",
+    "command": "python",
     "args": [
-      "run",
-      "--directory",
-      "mcp_server",
-      "python",
-      "-m",
-      "mcp_server.server"
+      "mcp_launcher.py"
     ]
   },
   "tools": [
