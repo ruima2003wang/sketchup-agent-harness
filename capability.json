@@ -1,0 +1,5225 @@
+{
+  "schemaVersion": 1,
+  "id": "sketchup-agent-harness",
+  "capabilities": [
+    "model.generate"
+  ],
+  "protocol": "mcp",
+  "mcp": {
+    "command": "uv",
+    "args": [
+      "run",
+      "--directory",
+      "mcp_server",
+      "python",
+      "-m",
+      "mcp_server.server"
+    ]
+  },
+  "tools": [
+    {
+      "name": "launch_sketchup_bridge",
+      "description": "Open SketchUp with a model window and wait for the Ruby bridge endpoint.",
+      "sideEffect": "write",
+      "inputSchema": {
+        "properties": {
+          "sketchup_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Sketchup Version"
+          },
+          "app_path": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "App Path"
+          },
+          "model_path": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Model Path"
+          },
+          "timeout": {
+            "default": 90,
+            "title": "Timeout",
+            "type": "number"
+          },
+          "clear_quarantine": {
+            "default": false,
+            "title": "Clear Quarantine",
+            "type": "boolean"
+          },
+          "suppress_update_check": {
+            "default": false,
+            "title": "Suppress Update Check",
+            "type": "boolean"
+          }
+        },
+        "title": "launch_sketchup_bridgeArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "get_bridge_info",
+      "description": "Get live SketchUp bridge version and supported operation metadata.",
+      "sideEffect": "read",
+      "inputSchema": {
+        "properties": {},
+        "title": "get_bridge_infoArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "get_scene_info",
+      "description": "Get current SketchUp scene information.\n\n    Returns model bounding box, entity counts by type, and layer list.",
+      "sideEffect": "read",
+      "inputSchema": {
+        "properties": {},
+        "title": "get_scene_infoArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "get_selection_info",
+      "description": "Get current SketchUp selection information for component registration.",
+      "sideEffect": "read",
+      "inputSchema": {
+        "properties": {
+          "limit": {
+            "default": 100,
+            "title": "Limit",
+            "type": "integer"
+          }
+        },
+        "title": "get_selection_infoArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "get_design_rules",
+      "description": "Read project-local design rules.",
+      "sideEffect": "read",
+      "inputSchema": {
+        "properties": {
+          "project_path": {
+            "title": "Project Path",
+            "type": "string"
+          }
+        },
+        "required": [
+          "project_path"
+        ],
+        "title": "get_design_rulesArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "get_designer_profile_status",
+      "description": "Read reusable designer profile status without mutating it.",
+      "sideEffect": "read",
+      "inputSchema": {
+        "properties": {
+          "profile_path": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Profile Path"
+          }
+        },
+        "title": "get_designer_profile_statusArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "init_designer_profile",
+      "description": "Create a reusable designer profile for future project defaults.",
+      "sideEffect": "write",
+      "inputSchema": {
+        "properties": {
+          "profile_path": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Profile Path"
+          },
+          "force": {
+            "default": false,
+            "title": "Force",
+            "type": "boolean"
+          }
+        },
+        "title": "init_designer_profileArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "set_design_clearance",
+      "description": "Set one project-local clearance value in millimeters.",
+      "sideEffect": "write",
+      "inputSchema": {
+        "properties": {
+          "project_path": {
+            "title": "Project Path",
+            "type": "string"
+          },
+          "rule_set": {
+            "title": "Rule Set",
+            "type": "string"
+          },
+          "clearance_name": {
+            "title": "Clearance Name",
+            "type": "string"
+          },
+          "value": {
+            "title": "Value",
+            "type": "number"
+          },
+          "source": {
+            "default": "project_user_override",
+            "title": "Source",
+            "type": "string"
+          }
+        },
+        "required": [
+          "project_path",
+          "rule_set",
+          "clearance_name",
+          "value"
+        ],
+        "title": "set_design_clearanceArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "set_designer_profile_clearance",
+      "description": "Set one reusable designer profile clearance value in millimeters.",
+      "sideEffect": "write",
+      "inputSchema": {
+        "properties": {
+          "rule_set": {
+            "title": "Rule Set",
+            "type": "string"
+          },
+          "clearance_name": {
+            "title": "Clearance Name",
+            "type": "string"
+          },
+          "value": {
+            "title": "Value",
+            "type": "number"
+          },
+          "profile_path": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Profile Path"
+          },
+          "source": {
+            "default": "designer_profile",
+            "title": "Source",
+            "type": "string"
+          }
+        },
+        "required": [
+          "rule_set",
+          "clearance_name",
+          "value"
+        ],
+        "title": "set_designer_profile_clearanceArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "set_fixture_dimension",
+      "description": "Set one project-local fixture dimension in millimeters.",
+      "sideEffect": "write",
+      "inputSchema": {
+        "properties": {
+          "project_path": {
+            "title": "Project Path",
+            "type": "string"
+          },
+          "rule_set": {
+            "title": "Rule Set",
+            "type": "string"
+          },
+          "fixture_name": {
+            "title": "Fixture Name",
+            "type": "string"
+          },
+          "width": {
+            "title": "Width",
+            "type": "number"
+          },
+          "depth": {
+            "title": "Depth",
+            "type": "number"
+          },
+          "height": {
+            "title": "Height",
+            "type": "number"
+          },
+          "source": {
+            "default": "project_user_override",
+            "title": "Source",
+            "type": "string"
+          }
+        },
+        "required": [
+          "project_path",
+          "rule_set",
+          "fixture_name",
+          "width",
+          "depth",
+          "height"
+        ],
+        "title": "set_fixture_dimensionArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "set_designer_profile_fixture_dimension",
+      "description": "Set one reusable designer profile fixture dimension in millimeters.",
+      "sideEffect": "write",
+      "inputSchema": {
+        "properties": {
+          "rule_set": {
+            "title": "Rule Set",
+            "type": "string"
+          },
+          "fixture_name": {
+            "title": "Fixture Name",
+            "type": "string"
+          },
+          "width": {
+            "title": "Width",
+            "type": "number"
+          },
+          "depth": {
+            "title": "Depth",
+            "type": "number"
+          },
+          "height": {
+            "title": "Height",
+            "type": "number"
+          },
+          "profile_path": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Profile Path"
+          },
+          "source": {
+            "default": "designer_profile",
+            "title": "Source",
+            "type": "string"
+          }
+        },
+        "required": [
+          "rule_set",
+          "fixture_name",
+          "width",
+          "depth",
+          "height"
+        ],
+        "title": "set_designer_profile_fixture_dimensionArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "set_design_preference",
+      "description": "Set one project-local free-form design preference.",
+      "sideEffect": "write",
+      "inputSchema": {
+        "properties": {
+          "project_path": {
+            "title": "Project Path",
+            "type": "string"
+          },
+          "preference_name": {
+            "title": "Preference Name",
+            "type": "string"
+          },
+          "value": {
+            "title": "Value",
+            "type": "string"
+          },
+          "source": {
+            "default": "project_user_override",
+            "title": "Source",
+            "type": "string"
+          }
+        },
+        "required": [
+          "project_path",
+          "preference_name",
+          "value"
+        ],
+        "title": "set_design_preferenceArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "set_designer_profile_preference",
+      "description": "Set one reusable designer profile free-form design preference.",
+      "sideEffect": "write",
+      "inputSchema": {
+        "properties": {
+          "preference_name": {
+            "title": "Preference Name",
+            "type": "string"
+          },
+          "value": {
+            "title": "Value",
+            "type": "string"
+          },
+          "profile_path": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Profile Path"
+          },
+          "source": {
+            "default": "designer_profile",
+            "title": "Source",
+            "type": "string"
+          }
+        },
+        "required": [
+          "preference_name",
+          "value"
+        ],
+        "title": "set_designer_profile_preferenceArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "get_project_state",
+      "description": "Read the project truth plus compact supporting project state.",
+      "sideEffect": "read",
+      "inputSchema": {
+        "properties": {
+          "project_path": {
+            "title": "Project Path",
+            "type": "string"
+          },
+          "include_rules": {
+            "default": true,
+            "title": "Include Rules",
+            "type": "boolean"
+          },
+          "include_assets": {
+            "default": true,
+            "title": "Include Assets",
+            "type": "boolean"
+          },
+          "include_imports": {
+            "default": true,
+            "title": "Include Imports",
+            "type": "boolean"
+          },
+          "include_visual_feedback": {
+            "default": true,
+            "title": "Include Visual Feedback",
+            "type": "boolean"
+          },
+          "include_versions": {
+            "default": true,
+            "title": "Include Versions",
+            "type": "boolean"
+          },
+          "include_execution": {
+            "default": true,
+            "title": "Include Execution",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "project_path"
+        ],
+        "title": "get_project_stateArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "register_import_source",
+      "description": "Register a DWG, DXF, PDF, image, or other source file for import.",
+      "sideEffect": "write",
+      "inputSchema": {
+        "properties": {
+          "project_path": {
+            "title": "Project Path",
+            "type": "string"
+          },
+          "source_path": {
+            "title": "Source Path",
+            "type": "string"
+          },
+          "import_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Import Id"
+          },
+          "label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Label"
+          },
+          "overwrite": {
+            "default": false,
+            "title": "Overwrite",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "project_path",
+          "source_path"
+        ],
+        "title": "register_import_sourceArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "prepare_import_source",
+      "description": "Register and preprocess a floor-plan source without writing model truth.",
+      "sideEffect": "write",
+      "inputSchema": {
+        "properties": {
+          "project_path": {
+            "title": "Project Path",
+            "type": "string"
+          },
+          "source_path": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Source Path"
+          },
+          "source_reference": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Source Reference"
+          },
+          "source_reference_type": {
+            "default": "chat_image_attachment",
+            "title": "Source Reference Type",
+            "type": "string"
+          },
+          "import_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Import Id"
+          },
+          "label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Label"
+          },
+          "overwrite": {
+            "default": false,
+            "title": "Overwrite",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "project_path"
+        ],
+        "title": "prepare_import_sourceArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "extract_floorplan_source",
+      "description": "Extract deterministic source metadata into raw_extraction.json.",
+      "sideEffect": "write",
+      "inputSchema": {
+        "properties": {
+          "project_path": {
+            "title": "Project Path",
+            "type": "string"
+          },
+          "import_id": {
+            "title": "Import Id",
+            "type": "string"
+          },
+          "overwrite": {
+            "default": false,
+            "title": "Overwrite",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "project_path",
+          "import_id"
+        ],
+        "title": "extract_floorplan_sourceArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "generate_source_interpretation",
+      "description": "Generate source_interpretation.json from raw extraction evidence.",
+      "sideEffect": "write",
+      "inputSchema": {
+        "properties": {
+          "project_path": {
+            "title": "Project Path",
+            "type": "string"
+          },
+          "import_id": {
+            "title": "Import Id",
+            "type": "string"
+          },
+          "raw_extraction_path": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Raw Extraction Path"
+          },
+          "width": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Width"
+          },
+          "depth": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Depth"
+          },
+          "strategy": {
+            "default": "coarse",
+            "title": "Strategy",
+            "type": "string"
+          },
+          "overwrite": {
+            "default": false,
+            "title": "Overwrite",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "project_path",
+          "import_id"
+        ],
+        "title": "generate_source_interpretationArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "record_import_stage_timing",
+      "description": "Record externally measured import stage timing in the manifest.",
+      "sideEffect": "write",
+      "inputSchema": {
+        "properties": {
+          "project_path": {
+            "title": "Project Path",
+            "type": "string"
+          },
+          "import_id": {
+            "title": "Import Id",
+            "type": "string"
+          },
+          "stage_name": {
+            "title": "Stage Name",
+            "type": "string"
+          },
+          "duration_ms": {
+            "title": "Duration Ms",
+            "type": "number"
+          },
+          "classification": {
+            "default": "agent_llm",
+            "title": "Classification",
+            "type": "string"
+          },
+          "status": {
+            "default": "success",
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "project_path",
+          "import_id",
+          "stage_name",
+          "duration_ms"
+        ],
+        "title": "record_import_stage_timingArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "import_source_pipeline",
+      "description": "Run prepare, extraction, interpretation, and deterministic model generation.",
+      "sideEffect": "write",
+      "inputSchema": {
+        "properties": {
+          "project_path": {
+            "title": "Project Path",
+            "type": "string"
+          },
+          "source_path": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Source Path"
+          },
+          "source_reference": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Source Reference"
+          },
+          "source_reference_type": {
+            "default": "chat_image_attachment",
+            "title": "Source Reference Type",
+            "type": "string"
+          },
+          "import_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Import Id"
+          },
+          "label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Label"
+          },
+          "width": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Width"
+          },
+          "depth": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Depth"
+          },
+          "mode": {
+            "default": "coarse",
+            "title": "Mode",
+            "type": "string"
+          },
+          "wall_height": {
+            "default": 2800,
+            "title": "Wall Height",
+            "type": "number"
+          },
+          "wall_thickness": {
+            "default": 120,
+            "title": "Wall Thickness",
+            "type": "number"
+          },
+          "overwrite": {
+            "default": false,
+            "title": "Overwrite",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "project_path"
+        ],
+        "title": "import_source_pipelineArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "import_floorplan_to_model",
+      "description": "Import a floor plan source directly into editable design_model.json truth.",
+      "sideEffect": "write",
+      "inputSchema": {
+        "properties": {
+          "project_path": {
+            "title": "Project Path",
+            "type": "string"
+          },
+          "source_path": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Source Path"
+          },
+          "source_reference": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Source Reference"
+          },
+          "source_reference_type": {
+            "default": "chat_image_attachment",
+            "title": "Source Reference Type",
+            "type": "string"
+          },
+          "import_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Import Id"
+          },
+          "label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Label"
+          },
+          "width": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Width"
+          },
+          "depth": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Depth"
+          },
+          "source_interpretation_path": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Source Interpretation Path"
+          },
+          "area_tolerance_ratio": {
+            "default": 0.35,
+            "title": "Area Tolerance Ratio",
+            "type": "number"
+          },
+          "negative_space_overlap_tolerance_m2": {
+            "default": 0.05,
+            "title": "Negative Space Overlap Tolerance M2",
+            "type": "number"
+          },
+          "wall_height": {
+            "default": 2800,
+            "title": "Wall Height",
+            "type": "number"
+          },
+          "wall_thickness": {
+            "default": 120,
+            "title": "Wall Thickness",
+            "type": "number"
+          },
+          "overwrite": {
+            "default": false,
+            "title": "Overwrite",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "project_path"
+        ],
+        "title": "import_floorplan_to_modelArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "get_import_summary",
+      "description": "Read import manifests plus design_model import session summaries.",
+      "sideEffect": "read",
+      "inputSchema": {
+        "properties": {
+          "project_path": {
+            "title": "Project Path",
+            "type": "string"
+          },
+          "import_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Import Id"
+          }
+        },
+        "required": [
+          "project_path"
+        ],
+        "title": "get_import_summaryArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "validate_import_source_constraints",
+      "description": "Validate imported truth against project-local source-fidelity constraints.",
+      "sideEffect": "read",
+      "inputSchema": {
+        "properties": {
+          "project_path": {
+            "title": "Project Path",
+            "type": "string"
+          },
+          "import_id": {
+            "title": "Import Id",
+            "type": "string"
+          },
+          "constraints_path": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Constraints Path"
+          },
+          "tolerance": {
+            "default": 80,
+            "title": "Tolerance",
+            "type": "number"
+          },
+          "require_executed": {
+            "default": false,
+            "title": "Require Executed",
+            "type": "boolean"
+          },
+          "require_extracted_evidence": {
+            "default": false,
+            "title": "Require Extracted Evidence",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "project_path",
+          "import_id"
+        ],
+        "title": "validate_import_source_constraintsArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "list_import_sessions",
+      "description": "List import sessions registered under the project imports directory.",
+      "sideEffect": "read",
+      "inputSchema": {
+        "properties": {
+          "project_path": {
+            "title": "Project Path",
+            "type": "string"
+          }
+        },
+        "required": [
+          "project_path"
+        ],
+        "title": "list_import_sessionsArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "rescale_imported_model",
+      "description": "Rescale imported working truth after the designer gives a better dimension.",
+      "sideEffect": "write",
+      "inputSchema": {
+        "properties": {
+          "project_path": {
+            "title": "Project Path",
+            "type": "string"
+          },
+          "import_id": {
+            "title": "Import Id",
+            "type": "string"
+          },
+          "scale_factor": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Scale Factor"
+          },
+          "target_width": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Target Width"
+          },
+          "target_depth": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Target Depth"
+          }
+        },
+        "required": [
+          "project_path",
+          "import_id"
+        ],
+        "title": "rescale_imported_modelArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "normalize_imported_wall_alignment",
+      "description": "Snap near-boundary imported wall segments onto shared exterior lines.",
+      "sideEffect": "write",
+      "inputSchema": {
+        "properties": {
+          "project_path": {
+            "title": "Project Path",
+            "type": "string"
+          },
+          "import_id": {
+            "title": "Import Id",
+            "type": "string"
+          },
+          "tolerance": {
+            "default": 250,
+            "title": "Tolerance",
+            "type": "number"
+          },
+          "coordinate_match_tolerance": {
+            "default": 1,
+            "title": "Coordinate Match Tolerance",
+            "type": "number"
+          },
+          "min_wall_length": {
+            "default": 20,
+            "title": "Min Wall Length",
+            "type": "number"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Notes"
+          }
+        },
+        "required": [
+          "project_path",
+          "import_id"
+        ],
+        "title": "normalize_imported_wall_alignmentArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "repair_imported_corner_notch",
+      "description": "Restore a missing source-backed exterior corner notch in imported truth.",
+      "sideEffect": "write",
+      "inputSchema": {
+        "properties": {
+          "project_path": {
+            "title": "Project Path",
+            "type": "string"
+          },
+          "import_id": {
+            "title": "Import Id",
+            "type": "string"
+          },
+          "corner": {
+            "title": "Corner",
+            "type": "string"
+          },
+          "horizontal_offset": {
+            "title": "Horizontal Offset",
+            "type": "number"
+          },
+          "vertical_offset": {
+            "title": "Vertical Offset",
+            "type": "number"
+          },
+          "target_space_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Target Space Id"
+          },
+          "coordinate_match_tolerance": {
+            "default": 1,
+            "title": "Coordinate Match Tolerance",
+            "type": "number"
+          },
+          "min_wall_length": {
+            "default": 20,
+            "title": "Min Wall Length",
+            "type": "number"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Notes"
+          }
+        },
+        "required": [
+          "project_path",
+          "import_id",
+          "corner",
+          "horizontal_offset",
+          "vertical_offset"
+        ],
+        "title": "repair_imported_corner_notchArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "review_imported_boundary_coverage",
+      "description": "Review imported footprint edges for missing explicit wall coverage.",
+      "sideEffect": "read",
+      "inputSchema": {
+        "properties": {
+          "project_path": {
+            "title": "Project Path",
+            "type": "string"
+          },
+          "import_id": {
+            "title": "Import Id",
+            "type": "string"
+          },
+          "min_gap_length": {
+            "default": 50,
+            "title": "Min Gap Length",
+            "type": "number"
+          },
+          "max_opening_gap_length": {
+            "default": 1200,
+            "title": "Max Opening Gap Length",
+            "type": "number"
+          },
+          "infer_source_evidence_short_gaps": {
+            "default": true,
+            "title": "Infer Source Evidence Short Gaps",
+            "type": "boolean"
+          },
+          "max_source_evidence_gap_length": {
+            "default": 900,
+            "title": "Max Source Evidence Gap Length",
+            "type": "number"
+          },
+          "coordinate_match_tolerance": {
+            "default": 1,
+            "title": "Coordinate Match Tolerance",
+            "type": "number"
+          },
+          "require_structural_endpoints": {
+            "default": true,
+            "title": "Require Structural Endpoints",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "project_path",
+          "import_id"
+        ],
+        "title": "review_imported_boundary_coverageArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "repair_imported_boundary_coverage",
+      "description": "Add walls for high-confidence imported footprint boundary gaps.",
+      "sideEffect": "write",
+      "inputSchema": {
+        "properties": {
+          "project_path": {
+            "title": "Project Path",
+            "type": "string"
+          },
+          "import_id": {
+            "title": "Import Id",
+            "type": "string"
+          },
+          "min_gap_length": {
+            "default": 50,
+            "title": "Min Gap Length",
+            "type": "number"
+          },
+          "max_opening_gap_length": {
+            "default": 1200,
+            "title": "Max Opening Gap Length",
+            "type": "number"
+          },
+          "infer_source_evidence_short_gaps": {
+            "default": true,
+            "title": "Infer Source Evidence Short Gaps",
+            "type": "boolean"
+          },
+          "max_source_evidence_gap_length": {
+            "default": 900,
+            "title": "Max Source Evidence Gap Length",
+            "type": "number"
+          },
+          "coordinate_match_tolerance": {
+            "default": 1,
+            "title": "Coordinate Match Tolerance",
+            "type": "number"
+          },
+          "require_structural_endpoints": {
+            "default": true,
+            "title": "Require Structural Endpoints",
+            "type": "boolean"
+          },
+          "max_repairs": {
+            "default": 20,
+            "title": "Max Repairs",
+            "type": "integer"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Notes"
+          }
+        },
+        "required": [
+          "project_path",
+          "import_id"
+        ],
+        "title": "repair_imported_boundary_coverageArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "review_imported_wall_space_consistency",
+      "description": "Review imported walls for segments outside imported space footprints.",
+      "sideEffect": "read",
+      "inputSchema": {
+        "properties": {
+          "project_path": {
+            "title": "Project Path",
+            "type": "string"
+          },
+          "import_id": {
+            "title": "Import Id",
+            "type": "string"
+          },
+          "min_segment_length": {
+            "default": 250,
+            "title": "Min Segment Length",
+            "type": "number"
+          },
+          "coordinate_match_tolerance": {
+            "default": 1,
+            "title": "Coordinate Match Tolerance",
+            "type": "number"
+          }
+        },
+        "required": [
+          "project_path",
+          "import_id"
+        ],
+        "title": "review_imported_wall_space_consistencyArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "repair_imported_shell_overreach",
+      "description": "Trim imported walls that enclose area outside imported space footprints.",
+      "sideEffect": "write",
+      "inputSchema": {
+        "properties": {
+          "project_path": {
+            "title": "Project Path",
+            "type": "string"
+          },
+          "import_id": {
+            "title": "Import Id",
+            "type": "string"
+          },
+          "min_segment_length": {
+            "default": 250,
+            "title": "Min Segment Length",
+            "type": "number"
+          },
+          "coordinate_match_tolerance": {
+            "default": 1,
+            "title": "Coordinate Match Tolerance",
+            "type": "number"
+          },
+          "min_wall_length": {
+            "default": 20,
+            "title": "Min Wall Length",
+            "type": "number"
+          },
+          "fill_resulting_boundary_gaps": {
+            "default": true,
+            "title": "Fill Resulting Boundary Gaps",
+            "type": "boolean"
+          },
+          "max_repairs": {
+            "default": 20,
+            "title": "Max Repairs",
+            "type": "integer"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Notes"
+          }
+        },
+        "required": [
+          "project_path",
+          "import_id"
+        ],
+        "title": "repair_imported_shell_overreachArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "review_model_against_import_source",
+      "description": "Review imported model entities against retained source evidence.",
+      "sideEffect": "read",
+      "inputSchema": {
+        "properties": {
+          "project_path": {
+            "title": "Project Path",
+            "type": "string"
+          },
+          "import_id": {
+            "title": "Import Id",
+            "type": "string"
+          },
+          "target_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Target Id"
+          }
+        },
+        "required": [
+          "project_path",
+          "import_id"
+        ],
+        "title": "review_model_against_import_sourceArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "review_import_stages",
+      "description": "Review staged import progress and recommended correction tools.",
+      "sideEffect": "read",
+      "inputSchema": {
+        "properties": {
+          "project_path": {
+            "title": "Project Path",
+            "type": "string"
+          },
+          "import_id": {
+            "title": "Import Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "project_path",
+          "import_id"
+        ],
+        "title": "review_import_stagesArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "record_import_correction",
+      "description": "Record structured import correction evidence without mutating truth.",
+      "sideEffect": "write",
+      "inputSchema": {
+        "properties": {
+          "project_path": {
+            "title": "Project Path",
+            "type": "string"
+          },
+          "import_id": {
+            "title": "Import Id",
+            "type": "string"
+          },
+          "stage": {
+            "title": "Stage",
+            "type": "string"
+          },
+          "correction_type": {
+            "title": "Correction Type",
+            "type": "string"
+          },
+          "summary": {
+            "title": "Summary",
+            "type": "string"
+          },
+          "details": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Details"
+          },
+          "target_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Target Id"
+          },
+          "provenance_origin": {
+            "default": "designer_correction",
+            "title": "Provenance Origin",
+            "type": "string"
+          },
+          "confidence": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Confidence"
+          },
+          "correction_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Correction Id"
+          },
+          "update_dynamic_skill": {
+            "default": true,
+            "title": "Update Dynamic Skill",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "project_path",
+          "import_id",
+          "stage",
+          "correction_type",
+          "summary"
+        ],
+        "title": "record_import_correctionArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "repair_imported_region",
+      "description": "Patch imported working truth using retained source evidence and user notes.",
+      "sideEffect": "write",
+      "inputSchema": {
+        "properties": {
+          "project_path": {
+            "title": "Project Path",
+            "type": "string"
+          },
+          "import_id": {
+            "title": "Import Id",
+            "type": "string"
+          },
+          "target_width": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Target Width"
+          },
+          "target_depth": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Target Depth"
+          },
+          "wall_thickness": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Wall Thickness"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Notes"
+          }
+        },
+        "required": [
+          "project_path",
+          "import_id"
+        ],
+        "title": "repair_imported_regionArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "set_project_space",
+      "description": "Create or update a rectangular project space in design_model.json.",
+      "sideEffect": "write",
+      "inputSchema": {
+        "properties": {
+          "project_path": {
+            "title": "Project Path",
+            "type": "string"
+          },
+          "space_id": {
+            "title": "Space Id",
+            "type": "string"
+          },
+          "width": {
+            "title": "Width",
+            "type": "number"
+          },
+          "depth": {
+            "title": "Depth",
+            "type": "number"
+          },
+          "height": {
+            "default": 2400,
+            "title": "Height",
+            "type": "number"
+          },
+          "space_type": {
+            "default": "other",
+            "title": "Space Type",
+            "type": "string"
+          },
+          "origin_x": {
+            "default": 0,
+            "title": "Origin X",
+            "type": "number"
+          },
+          "origin_y": {
+            "default": 0,
+            "title": "Origin Y",
+            "type": "number"
+          },
+          "origin_z": {
+            "default": 0,
+            "title": "Origin Z",
+            "type": "number"
+          }
+        },
+        "required": [
+          "project_path",
+          "space_id",
+          "width",
+          "depth"
+        ],
+        "title": "set_project_spaceArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "list_project_components",
+      "description": "List component-like instances currently referenced by a project.",
+      "sideEffect": "read",
+      "inputSchema": {
+        "properties": {
+          "project_path": {
+            "title": "Project Path",
+            "type": "string"
+          },
+          "include_lighting": {
+            "default": true,
+            "title": "Include Lighting",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "project_path"
+        ],
+        "title": "list_project_componentsArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "validate_design_project",
+      "description": "Validate core project files using the same checks as the CLI.",
+      "sideEffect": "read",
+      "inputSchema": {
+        "properties": {
+          "project_path": {
+            "title": "Project Path",
+            "type": "string"
+          }
+        },
+        "required": [
+          "project_path"
+        ],
+        "title": "validate_design_projectArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "validate_project_layout",
+      "description": "Validate component containment, overlaps, and simple clearances.",
+      "sideEffect": "read",
+      "inputSchema": {
+        "properties": {
+          "project_path": {
+            "title": "Project Path",
+            "type": "string"
+          }
+        },
+        "required": [
+          "project_path"
+        ],
+        "title": "validate_project_layoutArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "refresh_project_asset_lock",
+      "description": "Regenerate assets.lock.json from current project truth and components.",
+      "sideEffect": "write",
+      "inputSchema": {
+        "properties": {
+          "project_path": {
+            "title": "Project Path",
+            "type": "string"
+          }
+        },
+        "required": [
+          "project_path"
+        ],
+        "title": "refresh_project_asset_lockArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "create_wall",
+      "description": "Create a wall in SketchUp.\n\n    Args:\n        start_x, start_y, start_z: Start point coordinates in mm\n        end_x, end_y, end_z: End point coordinates in mm\n        height: Wall height in mm\n        thickness: Wall thickness in mm\n        alignment: Wall alignment - \"center\", \"inner\", or \"outer\"\n\n    Returns:\n        JSON string with entity_id and spatial_delta of created wall.",
+      "sideEffect": "write",
+      "inputSchema": {
+        "properties": {
+          "start_x": {
+            "title": "Start X",
+            "type": "number"
+          },
+          "start_y": {
+            "title": "Start Y",
+            "type": "number"
+          },
+          "start_z": {
+            "title": "Start Z",
+            "type": "number"
+          },
+          "end_x": {
+            "title": "End X",
+            "type": "number"
+          },
+          "end_y": {
+            "title": "End Y",
+            "type": "number"
+          },
+          "end_z": {
+            "title": "End Z",
+            "type": "number"
+          },
+          "height": {
+            "title": "Height",
+            "type": "number"
+          },
+          "thickness": {
+            "title": "Thickness",
+            "type": "number"
+          },
+          "alignment": {
+            "default": "center",
+            "title": "Alignment",
+            "type": "string"
+          }
+        },
+        "required": [
+          "start_x",
+          "start_y",
+          "start_z",
+          "end_x",
+          "end_y",
+          "end_z",
+          "height",
+          "thickness"
+        ],
+        "title": "create_wallArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "create_face",
+      "description": "Create a face from vertices.",
+      "sideEffect": "write",
+      "inputSchema": {
+        "properties": {
+          "vertices": {
+            "items": {
+              "items": {
+                "type": "number"
+              },
+              "type": "array"
+            },
+            "title": "Vertices",
+            "type": "array"
+          },
+          "layer": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Layer"
+          }
+        },
+        "required": [
+          "vertices"
+        ],
+        "title": "create_faceArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "create_box",
+      "description": "Create a 3D box.",
+      "sideEffect": "write",
+      "inputSchema": {
+        "properties": {
+          "corner_x": {
+            "title": "Corner X",
+            "type": "number"
+          },
+          "corner_y": {
+            "title": "Corner Y",
+            "type": "number"
+          },
+          "corner_z": {
+            "title": "Corner Z",
+            "type": "number"
+          },
+          "width": {
+            "title": "Width",
+            "type": "number"
+          },
+          "depth": {
+            "title": "Depth",
+            "type": "number"
+          },
+          "height": {
+            "title": "Height",
+            "type": "number"
+          }
+        },
+        "required": [
+          "corner_x",
+          "corner_y",
+          "corner_z",
+          "width",
+          "depth",
+          "height"
+        ],
+        "title": "create_boxArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "create_facade_grid",
+      "description": "Generate a curtain-wall grid (glass plane + mullions + transoms) on one facade.\n\n    Call it once per facade of a mass (axis \"x\" or \"y\" plus outward 1/-1 picks the side).\n    The grid is massing-level: one glass plane recessed behind a frame of vertical mullions\n    and horizontal transoms, one box per mullion/transom.\n\n    Args:\n        origin_x, origin_y, origin_z: corner of the facade plane in mm (bottom-left)\n        width: facade length along `axis`, mm\n        height: facade height, mm\n        axis: \"x\" or \"y\" — the direction the facade runs\n        outward: 1 or -1 — the side the frame protrudes toward\n        bays: bays (vertical divisions) along the facade\n        floors: floors (horizontal divisions)\n        mullion_width: vertical mullion width, mm\n        transom_height: horizontal transom height, mm\n        frame_depth: how far the frame protrudes from the plane, mm\n        glass_inset: how far glass is recessed behind the frame, mm\n        glass_preset: material preset, one of glass_dark, glass_mid, glass_light\n        frame_preset: material preset, one of frame_white, frame_light_gray, metal_gray,\n            panel_dark, panel_wood, stone_light, concrete",
+      "sideEffect": "write",
+      "inputSchema": {
+        "properties": {
+          "origin_x": {
+            "title": "Origin X",
+            "type": "number"
+          },
+          "origin_y": {
+            "title": "Origin Y",
+            "type": "number"
+          },
+          "origin_z": {
+            "title": "Origin Z",
+            "type": "number"
+          },
+          "width": {
+            "title": "Width",
+            "type": "number"
+          },
+          "height": {
+            "title": "Height",
+            "type": "number"
+          },
+          "axis": {
+            "title": "Axis",
+            "type": "string"
+          },
+          "outward": {
+            "title": "Outward",
+            "type": "integer"
+          },
+          "bays": {
+            "title": "Bays",
+            "type": "integer"
+          },
+          "floors": {
+            "title": "Floors",
+            "type": "integer"
+          },
+          "mullion_width": {
+            "default": 80,
+            "title": "Mullion Width",
+            "type": "number"
+          },
+          "transom_height": {
+            "default": 140,
+            "title": "Transom Height",
+            "type": "number"
+          },
+          "frame_depth": {
+            "default": 60,
+            "title": "Frame Depth",
+            "type": "number"
+          },
+          "glass_inset": {
+            "default": 90,
+            "title": "Glass Inset",
+            "type": "number"
+          },
+          "glass_preset": {
+            "default": "glass_dark",
+            "title": "Glass Preset",
+            "type": "string"
+          },
+          "frame_preset": {
+            "default": "frame_white",
+            "title": "Frame Preset",
+            "type": "string"
+          }
+        },
+        "required": [
+          "origin_x",
+          "origin_y",
+          "origin_z",
+          "width",
+          "height",
+          "axis",
+          "outward",
+          "bays",
+          "floors"
+        ],
+        "title": "create_facade_gridArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "create_floor_stack",
+      "description": "Generate a stack of floor slabs plus the roof slab for one footprint.\n\n    Use it for exposed floor bands (podium roofs, terraces, parking decks). For a glass\n    tower the transoms of create_facade_grid already read as floor lines.\n\n    Args:\n        origin_x, origin_y, origin_z: footprint corner in mm\n        width, depth: footprint size in mm\n        floors: number of floors (a slab is created at every level, roof included)\n        floor_height: floor-to-floor height in mm\n        slab_thickness: slab thickness in mm\n        overhang: how far each slab projects beyond the footprint, mm\n        material_preset: material preset (see create_facade_grid for the list)",
+      "sideEffect": "write",
+      "inputSchema": {
+        "properties": {
+          "origin_x": {
+            "title": "Origin X",
+            "type": "number"
+          },
+          "origin_y": {
+            "title": "Origin Y",
+            "type": "number"
+          },
+          "origin_z": {
+            "title": "Origin Z",
+            "type": "number"
+          },
+          "width": {
+            "title": "Width",
+            "type": "number"
+          },
+          "depth": {
+            "title": "Depth",
+            "type": "number"
+          },
+          "floors": {
+            "title": "Floors",
+            "type": "integer"
+          },
+          "floor_height": {
+            "title": "Floor Height",
+            "type": "number"
+          },
+          "slab_thickness": {
+            "default": 200,
+            "title": "Slab Thickness",
+            "type": "number"
+          },
+          "overhang": {
+            "default": 0,
+            "title": "Overhang",
+            "type": "number"
+          },
+          "material_preset": {
+            "default": "stone_light",
+            "title": "Material Preset",
+            "type": "string"
+          }
+        },
+        "required": [
+          "origin_x",
+          "origin_y",
+          "origin_z",
+          "width",
+          "depth",
+          "floors",
+          "floor_height"
+        ],
+        "title": "create_floor_stackArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "create_exterior",
+      "description": "Build a whole building exterior from one parameter spec, then report what to check.\n\n    Fill the spec from the reference image, call this once per attempt, capture the view and\n    compare it with the image against the returned checklist. Iterate by editing the spec and\n    calling again — never by moving single boxes.\n\n    Spec: {\"elements\": [...], \"camera\": {\"eye\": [x, y, z], \"target\": [x, y, z]}} with elements\n    - tower: x, y, width, depth, floors, floor_height, bays_x, bays_y, crown, base_ring_z,\n      glass_preset, frame_preset\n    - podium: x, y, width, depth, floors, floor_height, bays, glazed_ground, parapet,\n      band_height, solid_preset, frame_preset, glass_preset\n    - ribbon_block: x, y, width, depth, floors, floor_height, ribbon_levels, bays,\n      panel {width, height, offset_x}, glass_preset, solid_preset\n    - colonnade: x_start, y, count, spacing, size, height, preset",
+      "sideEffect": "write",
+      "inputSchema": {
+        "properties": {
+          "spec": {
+            "additionalProperties": true,
+            "title": "Spec",
+            "type": "object"
+          }
+        },
+        "required": [
+          "spec"
+        ],
+        "title": "create_exteriorArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "place_component",
+      "description": "Place a furniture component from the component library.\n\n    Args:\n        component_name: Name of component (e.g., \"现代双人沙发\")\n        position_x, position_y, position_z: Position in mm\n        rotation: Rotation angle in degrees\n        scale: Scale factor (1.0 = default size)",
+      "sideEffect": "write",
+      "inputSchema": {
+        "properties": {
+          "component_name": {
+            "title": "Component Name",
+            "type": "string"
+          },
+          "position_x": {
+            "default": 0,
+            "title": "Position X",
+            "type": "number"
+          },
+          "position_y": {
+            "default": 0,
+            "title": "Position Y",
+            "type": "number"
+          },
+          "position_z": {
+            "default": 0,
+            "title": "Position Z",
+            "type": "number"
+          },
+          "rotation": {
+            "default": 0,
+            "title": "Rotation",
+            "type": "number"
+          },
+          "scale": {
+            "default": 1,
+            "title": "Scale",
+            "type": "number"
+          }
+        },
+        "required": [
+          "component_name"
+        ],
+        "title": "place_componentArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "apply_material",
+      "description": "Apply material to entities.\n\n    Args:\n        entity_ids: List of entity IDs to apply material to\n        color: Hex color (e.g., \"#C67B5C\") or RGB array [r, g, b]\n        material_id: Optional SketchUp material name\n        preset: Exterior material preset; sets the color unless `color` is given.\n            One of: glass_dark, glass_mid, glass_light, frame_white, frame_light_gray,\n            metal_gray, stone_light, panel_dark, panel_wood, concrete\n        texture_scale_x: Texture scale X in mm\n        texture_scale_y: Texture scale Y in mm",
+      "sideEffect": "write",
+      "inputSchema": {
+        "properties": {
+          "entity_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Entity Ids",
+            "type": "array"
+          },
+          "color": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Color"
+          },
+          "material_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Material Id"
+          },
+          "preset": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Preset"
+          },
+          "texture_scale_x": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Texture Scale X"
+          },
+          "texture_scale_y": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Texture Scale Y"
+          }
+        },
+        "required": [
+          "entity_ids"
+        ],
+        "title": "apply_materialArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "apply_style",
+      "description": "Apply a complete style preset to the model or specific entities.\n\n    Args:\n        style_name: Style preset name.\n                    Options: \"japandi_cream\", \"modern_industrial\", \"scandinavian\",\n                             \"mediterranean\", \"bohemian\", \"contemporary_minimalist\"\n        entity_ids: Optional list of entity IDs to apply style to.\n                    If None, applies to all faces in the model.",
+      "sideEffect": "write",
+      "inputSchema": {
+        "properties": {
+          "style_name": {
+            "title": "Style Name",
+            "type": "string"
+          },
+          "entity_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Entity Ids"
+          }
+        },
+        "required": [
+          "style_name"
+        ],
+        "title": "apply_styleArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "place_lighting",
+      "description": "Place a lighting fixture.\n\n    Args:\n        lighting_type: Type - \"spotlight\", \"chandelier\", \"floor_lamp\"\n        position_x, position_y, position_z: Position in mm\n        ceiling_height: Ceiling height for spotlight placement\n        mount_height: Mount height for chandelier\n        rotation: Rotation angle in degrees",
+      "sideEffect": "write",
+      "inputSchema": {
+        "properties": {
+          "lighting_type": {
+            "title": "Lighting Type",
+            "type": "string"
+          },
+          "position_x": {
+            "title": "Position X",
+            "type": "number"
+          },
+          "position_y": {
+            "title": "Position Y",
+            "type": "number"
+          },
+          "position_z": {
+            "default": 0,
+            "title": "Position Z",
+            "type": "number"
+          },
+          "ceiling_height": {
+            "default": 2400,
+            "title": "Ceiling Height",
+            "type": "number"
+          },
+          "mount_height": {
+            "default": 2000,
+            "title": "Mount Height",
+            "type": "number"
+          },
+          "rotation": {
+            "default": 0,
+            "title": "Rotation",
+            "type": "number"
+          }
+        },
+        "required": [
+          "lighting_type",
+          "position_x",
+          "position_y"
+        ],
+        "title": "place_lightingArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "set_camera_view",
+      "description": "Set the camera view position.\n\n    Args:\n        view_preset: Preset name - \"top\", \"panoramic\", \"living_room_birdseye\",\n                     \"master_bedroom\", \"dining_area\", \"front_entrance\"\n        eye_x/y/z: Custom camera eye position in coordinate_units\n        target_x/y/z: Custom camera target position in coordinate_units\n        up_x/y/z: Optional camera up vector\n        coordinate_units: \"mm\" by default. Use \"sketchup_internal\" or \"inches\"\n                          only when sending raw SketchUp internal coordinates.",
+      "sideEffect": "write",
+      "inputSchema": {
+        "properties": {
+          "view_preset": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "View Preset"
+          },
+          "eye_x": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Eye X"
+          },
+          "eye_y": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Eye Y"
+          },
+          "eye_z": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Eye Z"
+          },
+          "target_x": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Target X"
+          },
+          "target_y": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Target Y"
+          },
+          "target_z": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Target Z"
+          },
+          "up_x": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Up X"
+          },
+          "up_y": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Up Y"
+          },
+          "up_z": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Up Z"
+          },
+          "coordinate_units": {
+            "default": "mm",
+            "title": "Coordinate Units",
+            "type": "string"
+          }
+        },
+        "title": "set_camera_viewArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "capture_design",
+      "description": "Capture the current design view to an image file.\n\n    Args:\n        output_path: Full path to output image file\n        view_preset: Optional view preset to set before capture\n        width: Image width in pixels\n        height: Image height in pixels\n        return_base64: If True, return the capture as an MCP image block\n\n    Returns:\n        Capture metadata as text and, when requested, the image block.",
+      "sideEffect": "write",
+      "inputSchema": {
+        "properties": {
+          "output_path": {
+            "title": "Output Path",
+            "type": "string"
+          },
+          "view_preset": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "View Preset"
+          },
+          "width": {
+            "default": 1920,
+            "title": "Width",
+            "type": "integer"
+          },
+          "height": {
+            "default": 1080,
+            "title": "Height",
+            "type": "integer"
+          },
+          "return_base64": {
+            "default": false,
+            "title": "Return Base64",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "output_path"
+        ],
+        "title": "capture_designArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "capture_project_snapshot",
+      "description": "Capture a project snapshot and record provenance.\n\n    Args:\n        project_path: Designer project directory containing design_model.json.\n        view_preset: Optional SketchUp camera preset.\n        label: Optional filename-safe label. Defaults to view preset.\n        width: Image width in pixels.\n        height: Image height in pixels.\n        return_base64: If True, return the snapshot as an MCP image block.\n        prompt: Optional user prompt that requested this visual artifact.\n\n    Returns:\n        Text with capture info and the snapshot manifest entry, plus the image\n        block when requested.",
+      "sideEffect": "write",
+      "inputSchema": {
+        "properties": {
+          "project_path": {
+            "title": "Project Path",
+            "type": "string"
+          },
+          "view_preset": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": "top",
+            "title": "View Preset"
+          },
+          "label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Label"
+          },
+          "width": {
+            "default": 1920,
+            "title": "Width",
+            "type": "integer"
+          },
+          "height": {
+            "default": 1080,
+            "title": "Height",
+            "type": "integer"
+          },
+          "return_base64": {
+            "default": false,
+            "title": "Return Base64",
+            "type": "boolean"
+          },
+          "prompt": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Prompt"
+          }
+        },
+        "required": [
+          "project_path"
+        ],
+        "title": "capture_project_snapshotArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "prepare_render_brief",
+      "description": "Prepare a renderer prompt from project truth and snapshot provenance.",
+      "sideEffect": "read",
+      "inputSchema": {
+        "properties": {
+          "project_path": {
+            "title": "Project Path",
+            "type": "string"
+          },
+          "render_goal": {
+            "title": "Render Goal",
+            "type": "string"
+          },
+          "style_intent": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Style Intent"
+          },
+          "source_snapshot_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Source Snapshot Id"
+          },
+          "source_snapshot_file": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Source Snapshot File"
+          },
+          "renderer_tool": {
+            "default": "image_renderer",
+            "title": "Renderer Tool",
+            "type": "string"
+          },
+          "renderer_model": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Renderer Model"
+          },
+          "width": {
+            "default": 1024,
+            "title": "Width",
+            "type": "integer"
+          },
+          "height": {
+            "default": 1024,
+            "title": "Height",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "project_path",
+          "render_goal"
+        ],
+        "title": "prepare_render_briefArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "record_render_artifact",
+      "description": "Record an advisory generated or rendered visual artifact.",
+      "sideEffect": "write",
+      "inputSchema": {
+        "properties": {
+          "project_path": {
+            "title": "Project Path",
+            "type": "string"
+          },
+          "artifact_path": {
+            "title": "Artifact Path",
+            "type": "string"
+          },
+          "prompt": {
+            "title": "Prompt",
+            "type": "string"
+          },
+          "renderer_tool": {
+            "title": "Renderer Tool",
+            "type": "string"
+          },
+          "renderer_model": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Renderer Model"
+          },
+          "source_snapshot_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Source Snapshot Id"
+          },
+          "source_snapshot_file": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Source Snapshot File"
+          },
+          "width": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Width"
+          },
+          "height": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Height"
+          },
+          "label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Label"
+          }
+        },
+        "required": [
+          "project_path",
+          "artifact_path",
+          "prompt",
+          "renderer_tool"
+        ],
+        "title": "record_render_artifactArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "record_visual_feedback",
+      "description": "Record advisory visual feedback as structured proposed actions.\n\n    This tool does not mutate design_model.json. It stores the interpretation\n    step that must happen between visual review and structured model changes.",
+      "sideEffect": "write",
+      "inputSchema": {
+        "properties": {
+          "project_path": {
+            "title": "Project Path",
+            "type": "string"
+          },
+          "summary": {
+            "title": "Summary",
+            "type": "string"
+          },
+          "actions": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Actions",
+            "type": "array"
+          },
+          "source_snapshot_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Source Snapshot Id"
+          },
+          "source_snapshot_file": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Source Snapshot File"
+          },
+          "prompt": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Prompt"
+          },
+          "reviewer": {
+            "default": "agent",
+            "title": "Reviewer",
+            "type": "string"
+          },
+          "renderer_tool": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Renderer Tool"
+          },
+          "renderer_model": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Renderer Model"
+          }
+        },
+        "required": [
+          "project_path",
+          "summary",
+          "actions"
+        ],
+        "title": "record_visual_feedbackArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "list_visual_feedback",
+      "description": "List advisory visual feedback reviews for a project.",
+      "sideEffect": "read",
+      "inputSchema": {
+        "properties": {
+          "project_path": {
+            "title": "Project Path",
+            "type": "string"
+          }
+        },
+        "required": [
+          "project_path"
+        ],
+        "title": "list_visual_feedbackArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "update_visual_feedback_action_status",
+      "description": "Update one visual feedback action status without mutating design truth.",
+      "sideEffect": "write",
+      "inputSchema": {
+        "properties": {
+          "project_path": {
+            "title": "Project Path",
+            "type": "string"
+          },
+          "review_id": {
+            "title": "Review Id",
+            "type": "string"
+          },
+          "action_index": {
+            "title": "Action Index",
+            "type": "integer"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "project_path",
+          "review_id",
+          "action_index",
+          "status"
+        ],
+        "title": "update_visual_feedback_action_statusArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "apply_visual_feedback_action",
+      "description": "Apply one supported visual feedback action to structured project truth.",
+      "sideEffect": "write",
+      "inputSchema": {
+        "properties": {
+          "project_path": {
+            "title": "Project Path",
+            "type": "string"
+          },
+          "review_id": {
+            "title": "Review Id",
+            "type": "string"
+          },
+          "action_index": {
+            "title": "Action Index",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "project_path",
+          "review_id",
+          "action_index"
+        ],
+        "title": "apply_visual_feedback_actionArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "cleanup_model",
+      "description": "Clean up AI-generated content from the model.\n\n    Args:\n        layer_names: Specific layer names to clean. If None, cleans all AI layers.\n                     Options include \"Walls\", \"Doors\", \"Windows\", \"Fixtures\",\n                     \"Furniture\", \"Lighting\", and \"Materials\".\n        tag: Alternative cleanup by component definition name containing tag.\n        all_entities: If true, clean the whole current SketchUp scene.\n\n    Returns:\n        Cleanup summary with deleted count and entity IDs.",
+      "sideEffect": "write",
+      "inputSchema": {
+        "properties": {
+          "layer_names": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Layer Names"
+          },
+          "tag": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Tag"
+          },
+          "all_entities": {
+            "default": false,
+            "title": "All Entities",
+            "type": "boolean"
+          }
+        },
+        "title": "cleanup_modelArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "create_door",
+      "description": "Create a door in a SketchUp wall with frame and swing panel.\n\n    Args:\n        wall_id: Entity ID of the wall to place door in\n        position_x: Position along the wall from start in mm\n        position_y: Position from wall face in mm (default 0)\n        width: Door width in mm (default 900mm)\n        height: Door height in mm (default 2100mm)\n        swing_direction: \"left\" or \"right\" swing\n\n    Returns:\n        JSON string with entity_id and spatial_delta of created door.",
+      "sideEffect": "write",
+      "inputSchema": {
+        "properties": {
+          "wall_id": {
+            "title": "Wall Id",
+            "type": "string"
+          },
+          "position_x": {
+            "title": "Position X",
+            "type": "number"
+          },
+          "position_y": {
+            "default": 0,
+            "title": "Position Y",
+            "type": "number"
+          },
+          "width": {
+            "default": 900,
+            "title": "Width",
+            "type": "number"
+          },
+          "height": {
+            "default": 2100,
+            "title": "Height",
+            "type": "number"
+          },
+          "swing_direction": {
+            "default": "left",
+            "title": "Swing Direction",
+            "type": "string"
+          }
+        },
+        "required": [
+          "wall_id",
+          "position_x"
+        ],
+        "title": "create_doorArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "create_window",
+      "description": "Create a window in a SketchUp wall with frame and glass.\n\n    Args:\n        wall_id: Entity ID of the wall to place window in\n        position_x: Position along the wall from start in mm\n        position_y: Position from wall face in mm (default 0)\n        width: Window width in mm (default 1200mm)\n        height: Window height in mm (default 1000mm)\n        sill_height: Height from floor to windowsill in mm (default 900mm)\n\n    Returns:\n        JSON string with entity_id and spatial_delta of created window.",
+      "sideEffect": "write",
+      "inputSchema": {
+        "properties": {
+          "wall_id": {
+            "title": "Wall Id",
+            "type": "string"
+          },
+          "position_x": {
+            "title": "Position X",
+            "type": "number"
+          },
+          "position_y": {
+            "default": 0,
+            "title": "Position Y",
+            "type": "number"
+          },
+          "width": {
+            "default": 1200,
+            "title": "Width",
+            "type": "number"
+          },
+          "height": {
+            "default": 1000,
+            "title": "Height",
+            "type": "number"
+          },
+          "sill_height": {
+            "default": 900,
+            "title": "Sill Height",
+            "type": "number"
+          }
+        },
+        "required": [
+          "wall_id",
+          "position_x"
+        ],
+        "title": "create_windowArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "create_stairs",
+      "description": "Create a staircase between two levels in SketchUp.\n\n    Args:\n        start_x, start_y, start_z: Start position (bottom of stairs) in mm\n        end_x, end_y, end_z: End position (top of stairs) in mm\n        width: Stair width in mm (default 1000mm)\n        num_steps: Number of steps (calculated from rise if not provided)\n\n    Returns:\n        JSON string with entity_id, spatial_delta, and stairs_info of created stairs.",
+      "sideEffect": "write",
+      "inputSchema": {
+        "properties": {
+          "start_x": {
+            "title": "Start X",
+            "type": "number"
+          },
+          "start_y": {
+            "title": "Start Y",
+            "type": "number"
+          },
+          "start_z": {
+            "title": "Start Z",
+            "type": "number"
+          },
+          "end_x": {
+            "title": "End X",
+            "type": "number"
+          },
+          "end_y": {
+            "title": "End Y",
+            "type": "number"
+          },
+          "end_z": {
+            "title": "End Z",
+            "type": "number"
+          },
+          "width": {
+            "default": 1000,
+            "title": "Width",
+            "type": "number"
+          },
+          "num_steps": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Num Steps"
+          }
+        },
+        "required": [
+          "start_x",
+          "start_y",
+          "start_z",
+          "end_x",
+          "end_y",
+          "end_z"
+        ],
+        "title": "create_stairsArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "search_local_library",
+      "description": "Search local component library for matching components.\n\n    Use this to find furniture, fixtures, and lighting from the user's\n    local SketchUp component library before using place_component.\n\n    Args:\n        query: Search query (e.g., \"sofa\", \"dining table\", \"北欧风格\")\n        category: Optional category filter - \"furniture\", \"fixture\", \"lighting\"\n        limit: Maximum number of results (default 10)\n\n    Returns:\n        List of matching components with IDs and paths for place_component.",
+      "sideEffect": "read",
+      "inputSchema": {
+        "properties": {
+          "query": {
+            "title": "Query",
+            "type": "string"
+          },
+          "category": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Category"
+          },
+          "limit": {
+            "default": 10,
+            "title": "Limit",
+            "type": "integer"
+          },
+          "project_path": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Project Path"
+          }
+        },
+        "required": [
+          "query"
+        ],
+        "title": "search_local_libraryArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "search_components",
+      "description": "Search the component registry and return machine-readable results.",
+      "sideEffect": "read",
+      "inputSchema": {
+        "properties": {
+          "query": {
+            "title": "Query",
+            "type": "string"
+          },
+          "category": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Category"
+          },
+          "limit": {
+            "default": 10,
+            "title": "Limit",
+            "type": "integer"
+          },
+          "project_path": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Project Path"
+          }
+        },
+        "required": [
+          "query"
+        ],
+        "title": "search_componentsArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "get_component_manifest",
+      "description": "Read one component manifest entry by canonical registry ID.",
+      "sideEffect": "read",
+      "inputSchema": {
+        "properties": {
+          "component_id": {
+            "title": "Component Id",
+            "type": "string"
+          },
+          "project_path": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Project Path"
+          }
+        },
+        "required": [
+          "component_id"
+        ],
+        "title": "get_component_manifestArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "register_project_component",
+      "description": "Register one project-local semantic component manifest entry.",
+      "sideEffect": "write",
+      "inputSchema": {
+        "properties": {
+          "project_path": {
+            "title": "Project Path",
+            "type": "string"
+          },
+          "component_id": {
+            "title": "Component Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "category": {
+            "title": "Category",
+            "type": "string"
+          },
+          "width": {
+            "title": "Width",
+            "type": "number"
+          },
+          "depth": {
+            "title": "Depth",
+            "type": "number"
+          },
+          "height": {
+            "title": "Height",
+            "type": "number"
+          },
+          "subcategory": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Subcategory"
+          },
+          "skp_path": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Skp Path"
+          },
+          "procedural_fallback": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": "box_component",
+            "title": "Procedural Fallback"
+          },
+          "insertion_offset_x": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Insertion Offset X"
+          },
+          "insertion_offset_y": {
+            "default": 0,
+            "title": "Insertion Offset Y",
+            "type": "number"
+          },
+          "insertion_offset_z": {
+            "default": 0,
+            "title": "Insertion Offset Z",
+            "type": "number"
+          },
+          "anchor_back": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Anchor Back"
+          },
+          "anchor_bottom": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": "floor",
+            "title": "Anchor Bottom"
+          },
+          "clearance_front": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Clearance Front"
+          },
+          "clearance_left": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Clearance Left"
+          },
+          "clearance_right": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Clearance Right"
+          },
+          "aliases_en": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Aliases En"
+          },
+          "aliases_zh_cn": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Aliases Zh Cn"
+          },
+          "tags": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Tags"
+          },
+          "license_type": {
+            "default": "unknown",
+            "title": "License Type",
+            "type": "string"
+          },
+          "license_source": {
+            "default": "project_local",
+            "title": "License Source",
+            "type": "string"
+          },
+          "license_author": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "License Author"
+          },
+          "license_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "License Url"
+          },
+          "redistribution": {
+            "default": "Project-local component metadata.",
+            "title": "Redistribution",
+            "type": "string"
+          },
+          "overwrite": {
+            "default": false,
+            "title": "Overwrite",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "project_path",
+          "component_id",
+          "name",
+          "category",
+          "width",
+          "depth",
+          "height"
+        ],
+        "title": "register_project_componentArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "import_project_component_asset",
+      "description": "Copy a local .skp asset into the project cache and register metadata.",
+      "sideEffect": "write",
+      "inputSchema": {
+        "properties": {
+          "project_path": {
+            "title": "Project Path",
+            "type": "string"
+          },
+          "source_path": {
+            "title": "Source Path",
+            "type": "string"
+          },
+          "component_id": {
+            "title": "Component Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "category": {
+            "title": "Category",
+            "type": "string"
+          },
+          "width": {
+            "title": "Width",
+            "type": "number"
+          },
+          "depth": {
+            "title": "Depth",
+            "type": "number"
+          },
+          "height": {
+            "title": "Height",
+            "type": "number"
+          },
+          "subcategory": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Subcategory"
+          },
+          "asset_filename": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Asset Filename"
+          },
+          "procedural_fallback": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": "box_component",
+            "title": "Procedural Fallback"
+          },
+          "insertion_offset_x": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Insertion Offset X"
+          },
+          "insertion_offset_y": {
+            "default": 0,
+            "title": "Insertion Offset Y",
+            "type": "number"
+          },
+          "insertion_offset_z": {
+            "default": 0,
+            "title": "Insertion Offset Z",
+            "type": "number"
+          },
+          "anchor_back": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Anchor Back"
+          },
+          "anchor_bottom": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": "floor",
+            "title": "Anchor Bottom"
+          },
+          "clearance_front": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Clearance Front"
+          },
+          "clearance_left": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Clearance Left"
+          },
+          "clearance_right": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Clearance Right"
+          },
+          "aliases_en": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Aliases En"
+          },
+          "aliases_zh_cn": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Aliases Zh Cn"
+          },
+          "tags": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Tags"
+          },
+          "license_type": {
+            "default": "unknown",
+            "title": "License Type",
+            "type": "string"
+          },
+          "license_source": {
+            "default": "local_file",
+            "title": "License Source",
+            "type": "string"
+          },
+          "license_author": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "License Author"
+          },
+          "license_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "License Url"
+          },
+          "redistribution": {
+            "default": "Project-local asset copied into project cache. Verify upstream license before sharing.",
+            "title": "Redistribution",
+            "type": "string"
+          },
+          "overwrite": {
+            "default": false,
+            "title": "Overwrite",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "project_path",
+          "source_path",
+          "component_id",
+          "name",
+          "category",
+          "width",
+          "depth",
+          "height"
+        ],
+        "title": "import_project_component_assetArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "register_selected_component",
+      "description": "Register a project-local component from the current SketchUp selection.",
+      "sideEffect": "write",
+      "inputSchema": {
+        "properties": {
+          "project_path": {
+            "title": "Project Path",
+            "type": "string"
+          },
+          "component_id": {
+            "title": "Component Id",
+            "type": "string"
+          },
+          "category": {
+            "default": "other",
+            "title": "Category",
+            "type": "string"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Name"
+          },
+          "subcategory": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Subcategory"
+          },
+          "selection_index": {
+            "default": 0,
+            "title": "Selection Index",
+            "type": "integer"
+          },
+          "selection_entity_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Selection Entity Id"
+          },
+          "skp_path": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Skp Path"
+          },
+          "procedural_fallback": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": "box_component",
+            "title": "Procedural Fallback"
+          },
+          "anchor_back": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Anchor Back"
+          },
+          "anchor_bottom": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": "floor",
+            "title": "Anchor Bottom"
+          },
+          "clearance_front": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Clearance Front"
+          },
+          "clearance_left": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Clearance Left"
+          },
+          "clearance_right": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Clearance Right"
+          },
+          "aliases_en": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Aliases En"
+          },
+          "aliases_zh_cn": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Aliases Zh Cn"
+          },
+          "tags": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Tags"
+          },
+          "export_asset": {
+            "default": false,
+            "title": "Export Asset",
+            "type": "boolean"
+          },
+          "license_type": {
+            "default": "project_local",
+            "title": "License Type",
+            "type": "string"
+          },
+          "license_author": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "License Author"
+          },
+          "license_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "License Url"
+          },
+          "redistribution": {
+            "default": "Project-local metadata inferred from SketchUp selection.",
+            "title": "Redistribution",
+            "type": "string"
+          },
+          "overwrite": {
+            "default": false,
+            "title": "Overwrite",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "project_path",
+          "component_id"
+        ],
+        "title": "register_selected_componentArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "add_component_instance",
+      "description": "Add a semantic component instance to design_model.json and assets.lock.json.",
+      "sideEffect": "write",
+      "inputSchema": {
+        "properties": {
+          "project_path": {
+            "title": "Project Path",
+            "type": "string"
+          },
+          "component_id": {
+            "title": "Component Id",
+            "type": "string"
+          },
+          "position_x": {
+            "title": "Position X",
+            "type": "number"
+          },
+          "position_y": {
+            "title": "Position Y",
+            "type": "number"
+          },
+          "position_z": {
+            "default": 0,
+            "title": "Position Z",
+            "type": "number"
+          },
+          "instance_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Instance Id"
+          },
+          "rotation": {
+            "default": 0,
+            "title": "Rotation",
+            "type": "number"
+          },
+          "layer": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Layer"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Name"
+          }
+        },
+        "required": [
+          "project_path",
+          "component_id",
+          "position_x",
+          "position_y"
+        ],
+        "title": "add_component_instanceArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "add_component_instance_semantic",
+      "description": "Add a registry component by resolving a semantic placement relation.",
+      "sideEffect": "write",
+      "inputSchema": {
+        "properties": {
+          "project_path": {
+            "title": "Project Path",
+            "type": "string"
+          },
+          "component_id": {
+            "title": "Component Id",
+            "type": "string"
+          },
+          "space_id": {
+            "title": "Space Id",
+            "type": "string"
+          },
+          "relation": {
+            "default": "centered_in_space",
+            "title": "Relation",
+            "type": "string"
+          },
+          "wall_side": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Wall Side"
+          },
+          "offset_along_wall": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Offset Along Wall"
+          },
+          "offset_x": {
+            "default": 0,
+            "title": "Offset X",
+            "type": "number"
+          },
+          "offset_y": {
+            "default": 0,
+            "title": "Offset Y",
+            "type": "number"
+          },
+          "offset_z": {
+            "default": 0,
+            "title": "Offset Z",
+            "type": "number"
+          },
+          "instance_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Instance Id"
+          },
+          "rotation": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Rotation"
+          },
+          "layer": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Layer"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Name"
+          }
+        },
+        "required": [
+          "project_path",
+          "component_id",
+          "space_id"
+        ],
+        "title": "add_component_instance_semanticArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "add_component_instance_relative",
+      "description": "Add a registry component by resolving a component-relative relation.",
+      "sideEffect": "write",
+      "inputSchema": {
+        "properties": {
+          "project_path": {
+            "title": "Project Path",
+            "type": "string"
+          },
+          "component_id": {
+            "title": "Component Id",
+            "type": "string"
+          },
+          "reference_instance_id": {
+            "title": "Reference Instance Id",
+            "type": "string"
+          },
+          "relation": {
+            "default": "above",
+            "title": "Relation",
+            "type": "string"
+          },
+          "side": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Side"
+          },
+          "gap": {
+            "default": 0,
+            "title": "Gap",
+            "type": "number"
+          },
+          "space_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Space Id"
+          },
+          "offset_x": {
+            "default": 0,
+            "title": "Offset X",
+            "type": "number"
+          },
+          "offset_y": {
+            "default": 0,
+            "title": "Offset Y",
+            "type": "number"
+          },
+          "offset_z": {
+            "default": 0,
+            "title": "Offset Z",
+            "type": "number"
+          },
+          "instance_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Instance Id"
+          },
+          "rotation": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Rotation"
+          },
+          "layer": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Layer"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Name"
+          }
+        },
+        "required": [
+          "project_path",
+          "component_id",
+          "reference_instance_id"
+        ],
+        "title": "add_component_instance_relativeArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "execute_component_instance",
+      "description": "Execute one project component instance against the SketchUp bridge.",
+      "sideEffect": "write",
+      "inputSchema": {
+        "properties": {
+          "project_path": {
+            "title": "Project Path",
+            "type": "string"
+          },
+          "instance_id": {
+            "title": "Instance Id",
+            "type": "string"
+          },
+          "stop_on_error": {
+            "default": true,
+            "title": "Stop On Error",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "project_path",
+          "instance_id"
+        ],
+        "title": "execute_component_instanceArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "plan_project_execution",
+      "description": "Build a bridge operation trace from current design_model.json truth.",
+      "sideEffect": "read",
+      "inputSchema": {
+        "properties": {
+          "project_path": {
+            "title": "Project Path",
+            "type": "string"
+          },
+          "include_spaces": {
+            "default": true,
+            "title": "Include Spaces",
+            "type": "boolean"
+          },
+          "include_walls": {
+            "default": true,
+            "title": "Include Walls",
+            "type": "boolean"
+          },
+          "include_openings": {
+            "default": true,
+            "title": "Include Openings",
+            "type": "boolean"
+          },
+          "include_components": {
+            "default": true,
+            "title": "Include Components",
+            "type": "boolean"
+          },
+          "include_lighting": {
+            "default": true,
+            "title": "Include Lighting",
+            "type": "boolean"
+          },
+          "include_scene_info": {
+            "default": true,
+            "title": "Include Scene Info",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "project_path"
+        ],
+        "title": "plan_project_executionArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "execute_project_model",
+      "description": "Execute current design_model.json truth against the SketchUp bridge.",
+      "sideEffect": "write",
+      "inputSchema": {
+        "properties": {
+          "project_path": {
+            "title": "Project Path",
+            "type": "string"
+          },
+          "stop_on_error": {
+            "default": true,
+            "title": "Stop On Error",
+            "type": "boolean"
+          },
+          "allow_partial": {
+            "default": false,
+            "title": "Allow Partial",
+            "type": "boolean"
+          },
+          "clean_before_execute": {
+            "default": false,
+            "title": "Clean Before Execute",
+            "type": "boolean"
+          },
+          "clean_scope": {
+            "default": "managed",
+            "title": "Clean Scope",
+            "type": "string"
+          },
+          "include_spaces": {
+            "default": true,
+            "title": "Include Spaces",
+            "type": "boolean"
+          },
+          "include_walls": {
+            "default": true,
+            "title": "Include Walls",
+            "type": "boolean"
+          },
+          "include_openings": {
+            "default": true,
+            "title": "Include Openings",
+            "type": "boolean"
+          },
+          "include_components": {
+            "default": true,
+            "title": "Include Components",
+            "type": "boolean"
+          },
+          "include_lighting": {
+            "default": true,
+            "title": "Include Lighting",
+            "type": "boolean"
+          },
+          "include_scene_info": {
+            "default": true,
+            "title": "Include Scene Info",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "project_path"
+        ],
+        "title": "execute_project_modelArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "save_sketchup_model",
+      "description": "Save the active live SketchUp model as a .skp file.",
+      "sideEffect": "write",
+      "inputSchema": {
+        "properties": {
+          "output_path": {
+            "title": "Output Path",
+            "type": "string"
+          },
+          "require_clean_scene": {
+            "default": false,
+            "title": "Require Clean Scene",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "output_path"
+        ],
+        "title": "save_sketchup_modelArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "list_local_library_categories",
+      "description": "List all available categories in the local component library.\n\n    Returns:\n        List of categories like \"furniture\", \"fixture\", \"lighting\".",
+      "sideEffect": "read",
+      "inputSchema": {
+        "properties": {
+          "project_path": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Project Path"
+          }
+        },
+        "title": "list_local_library_categoriesArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "plan_bathroom",
+      "description": "Plan a small bathroom without requiring a live SketchUp bridge.\n\n    Generates a design_model, design_rules, validation report, and bridge\n    operation trace for the first vertical slice. If project_path is provided,\n    design_model.json and design_rules.json are written into that directory.",
+      "sideEffect": "write",
+      "inputSchema": {
+        "properties": {
+          "project_name": {
+            "default": "bathroom_mvp",
+            "title": "Project Name",
+            "type": "string"
+          },
+          "width": {
+            "default": 2000,
+            "title": "Width",
+            "type": "number"
+          },
+          "depth": {
+            "default": 1800,
+            "title": "Depth",
+            "type": "number"
+          },
+          "ceiling_height": {
+            "default": 2400,
+            "title": "Ceiling Height",
+            "type": "number"
+          },
+          "project_path": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Project Path"
+          }
+        },
+        "title": "plan_bathroomArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "execute_bathroom_plan",
+      "description": "Plan and execute the seed bathroom operation trace in SketchUp.",
+      "sideEffect": "write",
+      "inputSchema": {
+        "properties": {
+          "project_name": {
+            "default": "bathroom_mvp",
+            "title": "Project Name",
+            "type": "string"
+          },
+          "width": {
+            "default": 2000,
+            "title": "Width",
+            "type": "number"
+          },
+          "depth": {
+            "default": 1800,
+            "title": "Depth",
+            "type": "number"
+          },
+          "ceiling_height": {
+            "default": 2400,
+            "title": "Ceiling Height",
+            "type": "number"
+          },
+          "project_path": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Project Path"
+          },
+          "stop_on_error": {
+            "default": true,
+            "title": "Stop On Error",
+            "type": "boolean"
+          }
+        },
+        "title": "execute_bathroom_planArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "generate_report",
+      "description": "Generate a design report with snapshots and component list.\n\n    Args:\n        project_name: Name of the project\n        project_dir: Base directory for designs\n\n    Returns:\n        Path to generated report and summary.",
+      "sideEffect": "write",
+      "inputSchema": {
+        "properties": {
+          "project_name": {
+            "title": "Project Name",
+            "type": "string"
+          },
+          "project_dir": {
+            "default": "./designs",
+            "title": "Project Dir",
+            "type": "string"
+          }
+        },
+        "required": [
+          "project_name"
+        ],
+        "title": "generate_reportArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "generate_project_report",
+      "description": "Generate an English-first Markdown report from a project workspace.",
+      "sideEffect": "write",
+      "inputSchema": {
+        "properties": {
+          "project_path": {
+            "title": "Project Path",
+            "type": "string"
+          },
+          "output_path": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Output Path"
+          }
+        },
+        "required": [
+          "project_path"
+        ],
+        "title": "generate_project_reportArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "save_project_version",
+      "description": "Save current structured project truth into a project-local version.",
+      "sideEffect": "write",
+      "inputSchema": {
+        "properties": {
+          "project_path": {
+            "title": "Project Path",
+            "type": "string"
+          },
+          "version_tag": {
+            "title": "Version Tag",
+            "type": "string"
+          },
+          "description": {
+            "default": "",
+            "title": "Description",
+            "type": "string"
+          },
+          "overwrite": {
+            "default": false,
+            "title": "Overwrite",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "project_path",
+          "version_tag"
+        ],
+        "title": "save_project_versionArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "list_project_versions",
+      "description": "List project-local structured truth versions.",
+      "sideEffect": "read",
+      "inputSchema": {
+        "properties": {
+          "project_path": {
+            "title": "Project Path",
+            "type": "string"
+          }
+        },
+        "required": [
+          "project_path"
+        ],
+        "title": "list_project_versionsArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "compare_project_versions",
+      "description": "Compare two structured project truth versions or a version to current.",
+      "sideEffect": "read",
+      "inputSchema": {
+        "properties": {
+          "project_path": {
+            "title": "Project Path",
+            "type": "string"
+          },
+          "base_version": {
+            "title": "Base Version",
+            "type": "string"
+          },
+          "head_version": {
+            "default": "current",
+            "title": "Head Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "project_path",
+          "base_version"
+        ],
+        "title": "compare_project_versionsArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "restore_project_version",
+      "description": "Restore a project-local structured truth version into current files.",
+      "sideEffect": "write",
+      "inputSchema": {
+        "properties": {
+          "project_path": {
+            "title": "Project Path",
+            "type": "string"
+          },
+          "version_tag": {
+            "title": "Version Tag",
+            "type": "string"
+          },
+          "overwrite_current": {
+            "default": false,
+            "title": "Overwrite Current",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "project_path",
+          "version_tag"
+        ],
+        "title": "restore_project_versionArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "save_version",
+      "description": "Compatibility alias for saving structured project truth as a version.\n\n    Args:\n        project_name: Name of the project\n        version_tag: Version identifier (e.g., \"v1.0\", \"draft_2\")\n        description: Brief description of this version\n        project_dir: Base directory for designs\n        overwrite: Whether to replace an existing version tag\n\n    Returns:\n        JSON summary for the saved project version.",
+      "sideEffect": "write",
+      "inputSchema": {
+        "properties": {
+          "project_name": {
+            "title": "Project Name",
+            "type": "string"
+          },
+          "version_tag": {
+            "title": "Version Tag",
+            "type": "string"
+          },
+          "description": {
+            "default": "",
+            "title": "Description",
+            "type": "string"
+          },
+          "project_dir": {
+            "default": "./designs",
+            "title": "Project Dir",
+            "type": "string"
+          },
+          "overwrite": {
+            "default": false,
+            "title": "Overwrite",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "project_name",
+          "version_tag"
+        ],
+        "title": "save_versionArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "list_versions",
+      "description": "Compatibility alias for listing structured project truth versions.\n\n    Args:\n        project_name: Name of the project\n        project_dir: Base directory for designs\n\n    Returns:\n        JSON summary for saved project versions.",
+      "sideEffect": "read",
+      "inputSchema": {
+        "properties": {
+          "project_name": {
+            "title": "Project Name",
+            "type": "string"
+          },
+          "project_dir": {
+            "default": "./designs",
+            "title": "Project Dir",
+            "type": "string"
+          }
+        },
+        "required": [
+          "project_name"
+        ],
+        "title": "list_versionsArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "search_sketchfab_models",
+      "description": "Search Sketchfab for 3D models.\n\n    Use this to find furniture, fixtures, and decorative objects from\n    Sketchfab's library of Creative Commons licensed 3D models.\n\n    Args:\n        query: Search query (e.g., \"modern sofa\", \"floor lamp\", \"potted plant\")\n        count: Number of results to return (max 50)\n        sort: Sort order - \"relevance\", \"newest\", \"likes\", \"views\"\n\n    Returns:\n        List of matching 3D models with download links and metadata.",
+      "sideEffect": "read",
+      "inputSchema": {
+        "properties": {
+          "query": {
+            "title": "Query",
+            "type": "string"
+          },
+          "count": {
+            "default": 10,
+            "title": "Count",
+            "type": "integer"
+          },
+          "sort": {
+            "default": "relevance",
+            "title": "Sort",
+            "type": "string"
+          }
+        },
+        "required": [
+          "query"
+        ],
+        "title": "search_sketchfab_modelsArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "get_sketchfab_model",
+      "description": "Get detailed information about a Sketchfab model.\n\n    Args:\n        model_uid: Sketchfab model UID (from search results)\n\n    Returns:\n        Detailed model information including download formats and links.",
+      "sideEffect": "read",
+      "inputSchema": {
+        "properties": {
+          "model_uid": {
+            "title": "Model Uid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "model_uid"
+        ],
+        "title": "get_sketchfab_modelArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "download_sketchfab_model",
+      "description": "Download a Sketchfab 3D model.\n\n    Downloads the model in the specified format (OBJ recommended for SketchUp).\n    After download, models can be imported into SketchUp.\n\n    Args:\n        model_uid: Sketchfab model UID (from search results)\n        format_hint: Preferred format - \"obj\" (recommended for SketchUp), \"gltf\", \"glb\"\n        output_dir: Output directory (defaults to ~/SketchUp/SCC/downloaded_models/)\n\n    Returns:\n        Download status and file path.",
+      "sideEffect": "write",
+      "inputSchema": {
+        "properties": {
+          "model_uid": {
+            "title": "Model Uid",
+            "type": "string"
+          },
+          "format_hint": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": "obj",
+            "title": "Format Hint"
+          },
+          "output_dir": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Output Dir"
+          }
+        },
+        "required": [
+          "model_uid"
+        ],
+        "title": "download_sketchfab_modelArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "search_and_download_sketchfab",
+      "description": "Search Sketchfab and download the top result in one step.\n\n    Convenience function that searches for models and downloads the\n    first downloadable result.\n\n    Args:\n        query: Search query (e.g., \"minimalist coffee table\")\n        format_hint: Preferred format - \"obj\" (recommended for SketchUp), \"gltf\", \"glb\"\n\n    Returns:\n        Search results and download status.",
+      "sideEffect": "write",
+      "inputSchema": {
+        "properties": {
+          "query": {
+            "title": "Query",
+            "type": "string"
+          },
+          "format_hint": {
+            "default": "obj",
+            "title": "Format Hint",
+            "type": "string"
+          }
+        },
+        "required": [
+          "query"
+        ],
+        "title": "search_and_download_sketchfabArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "search_warehouse",
+      "description": "Get a SketchUp 3D Warehouse search URL.\n\n    Opens the 3D Warehouse search page in your browser where you can\n    browse and download 3D models.\n\n    Note: 3D Warehouse does not have a public API, so this tool provides\n    a search URL that you can open in your browser.\n\n    Args:\n        query: Search query (e.g., \"modern sofa\", \"floor lamp\")\n\n    Returns:\n        URL to open in browser for searching 3D Warehouse.",
+      "sideEffect": "read",
+      "inputSchema": {
+        "properties": {
+          "query": {
+            "title": "Query",
+            "type": "string"
+          }
+        },
+        "required": [
+          "query"
+        ],
+        "title": "search_warehouseArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "download_from_warehouse",
+      "description": "Get guidance for downloading a model from SketchUp 3D Warehouse URL.\n\n    Note: 3D Warehouse does not have a public API. This tool provides\n    guidance for the manual download process.\n\n    Args:\n        warehouse_url: Full URL to a 3D Warehouse model page\n                       (e.g., https://3dwarehouse.sketchup.com/model/abc123/...)\n\n    Returns:\n        Instructions for downloading the model.",
+      "sideEffect": "read",
+      "inputSchema": {
+        "properties": {
+          "warehouse_url": {
+            "title": "Warehouse Url",
+            "type": "string"
+          }
+        },
+        "required": [
+          "warehouse_url"
+        ],
+        "title": "download_from_warehouseArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "get_warehouse_model_info",
+      "description": "Extract model information from a SketchUp 3D Warehouse URL.\n\n    Note: 3D Warehouse does not have a public API. This tool does\n    best-effort extraction of model ID from the URL pattern.\n\n    Args:\n        warehouse_url: Full URL to a 3D Warehouse model page\n\n    Returns:\n        Model ID and URL extracted from the link.",
+      "sideEffect": "read",
+      "inputSchema": {
+        "properties": {
+          "warehouse_url": {
+            "title": "Warehouse Url",
+            "type": "string"
+          }
+        },
+        "required": [
+          "warehouse_url"
+        ],
+        "title": "get_warehouse_model_infoArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "move_entity",
+      "description": "Move entities by a delta in mm.\n\n    Args:\n        entity_ids: List of entity IDs to move\n        delta_x: Delta X in mm\n        delta_y: Delta Y in mm\n        delta_z: Delta Z in mm\n\n    Returns:\n        JSON string with entity_ids and status of moved entities.",
+      "sideEffect": "write",
+      "inputSchema": {
+        "properties": {
+          "entity_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Entity Ids",
+            "type": "array"
+          },
+          "delta_x": {
+            "title": "Delta X",
+            "type": "number"
+          },
+          "delta_y": {
+            "title": "Delta Y",
+            "type": "number"
+          },
+          "delta_z": {
+            "title": "Delta Z",
+            "type": "number"
+          }
+        },
+        "required": [
+          "entity_ids",
+          "delta_x",
+          "delta_y",
+          "delta_z"
+        ],
+        "title": "move_entityArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "rotate_entity",
+      "description": "Rotate entities around a center point and axis.\n\n    Args:\n        entity_ids: List of entity IDs to rotate\n        center_x: Center X coordinate in mm\n        center_y: Center Y coordinate in mm\n        center_z: Center Z coordinate in mm\n        axis: Rotation axis - \"+x\", \"-x\", \"+y\", \"-y\", \"+z\", \"-z\"\n        angle: Rotation angle in degrees\n\n    Returns:\n        JSON string with entity_ids and status of rotated entities.",
+      "sideEffect": "write",
+      "inputSchema": {
+        "properties": {
+          "entity_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Entity Ids",
+            "type": "array"
+          },
+          "center_x": {
+            "title": "Center X",
+            "type": "number"
+          },
+          "center_y": {
+            "title": "Center Y",
+            "type": "number"
+          },
+          "center_z": {
+            "title": "Center Z",
+            "type": "number"
+          },
+          "axis": {
+            "title": "Axis",
+            "type": "string"
+          },
+          "angle": {
+            "title": "Angle",
+            "type": "number"
+          }
+        },
+        "required": [
+          "entity_ids",
+          "center_x",
+          "center_y",
+          "center_z",
+          "axis",
+          "angle"
+        ],
+        "title": "rotate_entityArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "scale_entity",
+      "description": "Scale entities uniformly or non-uniformly around a center point.\n\n    Args:\n        entity_ids: List of entity IDs to scale\n        center_x: Center X coordinate in mm\n        center_y: Center Y coordinate in mm\n        center_z: Center Z coordinate in mm\n        scale: Uniform scale factor (float) or [sx, sy, sz] for non-uniform scaling\n\n    Returns:\n        JSON string with entity_ids and status of scaled entities.",
+      "sideEffect": "write",
+      "inputSchema": {
+        "properties": {
+          "entity_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Entity Ids",
+            "type": "array"
+          },
+          "center_x": {
+            "title": "Center X",
+            "type": "number"
+          },
+          "center_y": {
+            "title": "Center Y",
+            "type": "number"
+          },
+          "center_z": {
+            "title": "Center Z",
+            "type": "number"
+          },
+          "scale": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "items": {
+                  "type": "number"
+                },
+                "type": "array"
+              }
+            ],
+            "title": "Scale"
+          }
+        },
+        "required": [
+          "entity_ids",
+          "center_x",
+          "center_y",
+          "center_z",
+          "scale"
+        ],
+        "title": "scale_entityArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "copy_entity",
+      "description": "Create copies of entities and translate them by delta.\n\n    Args:\n        entity_ids: List of entity IDs to copy\n        delta_x: Delta X in mm\n        delta_y: Delta Y in mm\n        delta_z: Delta Z in mm\n\n    Returns:\n        JSON string with entity_ids of the new copies.",
+      "sideEffect": "write",
+      "inputSchema": {
+        "properties": {
+          "entity_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Entity Ids",
+            "type": "array"
+          },
+          "delta_x": {
+            "title": "Delta X",
+            "type": "number"
+          },
+          "delta_y": {
+            "title": "Delta Y",
+            "type": "number"
+          },
+          "delta_z": {
+            "title": "Delta Z",
+            "type": "number"
+          }
+        },
+        "required": [
+          "entity_ids",
+          "delta_x",
+          "delta_y",
+          "delta_z"
+        ],
+        "title": "copy_entityArguments",
+        "type": "object"
+      }
+    }
+  ]
+}
