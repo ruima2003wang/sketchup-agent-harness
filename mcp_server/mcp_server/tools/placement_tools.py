@@ -295,9 +295,17 @@ async def place_component(
 
 
 def resolve_skp_path(skp_path: str) -> str:
-    """Resolve SKP path from environment variable or default."""
+    """Resolve SKP path from the environment or the packaged component tree.
+
+    The packaged seed assets live next to this package, so they resolve on every
+    platform. The old macOS SketchUp.app default silently produced box fakes on
+    Windows because the path never existed there.
+    """
     import os
-    assets_path = os.environ.get("SKETCHUP_ASSETS", "/Applications/SketchUp.app/Contents/Resources")
+    from pathlib import Path
+
+    default_assets = Path(__file__).resolve().parents[1] / "assets" / "components"
+    assets_path = os.environ.get("SKETCHUP_ASSETS", str(default_assets))
     return skp_path.replace("${SKETCHUP_ASSETS}", assets_path)
 
 

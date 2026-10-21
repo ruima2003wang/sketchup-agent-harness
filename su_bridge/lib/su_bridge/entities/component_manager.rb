@@ -70,9 +70,11 @@ module SuBridge
       def self.load_component(skp_path)
         resolved_path = resolve_skp_path(skp_path)
 
-        # Check cache first
+        # Check cache first. A scene cleanup/purge can delete a cached
+        # definition; never hand a deleted definition to add_instance.
         cached = DEFINITION_CACHE[resolved_path]
-        return cached if cached
+        return cached if cached && !cached.deleted?
+        DEFINITION_CACHE.delete(resolved_path) if cached
 
         unless File.exist?(resolved_path)
           raise ::SuBridge::UndoManager::ValidationError, "SKP file not found: #{resolved_path}"
@@ -85,10 +87,15 @@ module SuBridge
         definition = model.definitions.find { |d| d.name.include?(File.basename(resolved_path, ".skp")) }
 
         unless definition
-          # Import the SKP file
-          status = model.import(resolved_path, false)
-          definition = model.definitions.last
+          # Import the SKP file. DefinitionList has no #last in SketchUp 2022,
+          # so diff the list before/after the import instead.
+          before = model.definitions.to_a
+          model.import(resolved_path, false)
+          added = model.definitions.to_a - before
+          definition = added.last
         end
+
+        raise ::SuBridge::UndoManager::ValidationError, "SKP import produced no component definition: #{resolved_path}" unless definition
 
         DEFINITION_CACHE[resolved_path] = definition
         definition
@@ -148,20 +155,22 @@ module SuBridge
         point = Geom::Point3d.new(mm_to_inch(position[0]), mm_to_inch(position[1]), mm_to_inch(position[2]))
         tr = Geom::Transformation.new(point)
 
-        # Apply rotation around Z axis (Y-up rotation)
+        # Apply rotation around the component origin, then translate. The
+        # reversed order rotated the world-space position around the world
+        # origin, which threw every rotated component out of the room.
         if rotation != 0
           rotation_tr = Geom::Transformation.rotation(
             ORIGIN,
             Z_AXIS,
             rotation.degrees
           )
-          tr = rotation_tr * tr
+          tr = tr * rotation_tr
         end
 
-        # Apply scale
+        # Apply scale about the component origin, then translate.
         if scale != 1.0
           scale_tr = Geom::Transformation.scaling(ORIGIN, scale)
-          tr = scale_tr * tr
+          tr = tr * scale_tr
         end
 
         tr

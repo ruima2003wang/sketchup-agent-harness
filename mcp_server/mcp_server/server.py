@@ -3316,8 +3316,8 @@ async def set_camera_view(
 async def capture_design(
     output_path: str,
     view_preset: str | None = None,
-    width: int = 1920,
-    height: int = 1080,
+    width: int = 1280,
+    height: int = 720,
     return_base64: bool = False,
 ) -> CallToolResult:
     """Capture the current design view to an image file.
@@ -3351,7 +3351,11 @@ async def capture_design(
                 "rollback_on_failure": False,
             }
         )
-        response = bridge.send(request.to_dict())
+        # A capture blocks SketchUp's UI thread until write_image returns. Give
+        # the bridge a render-specific budget instead of the 30 s default: the
+        # render can finish after a client-side give-up, and killing the socket
+        # at 30 s loses a preview the bridge is still writing.
+        response = bridge.send(request.to_dict(), timeout=180)
         if "error" in response:
             return CallToolResult(
                 content=[

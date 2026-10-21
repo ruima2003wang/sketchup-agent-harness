@@ -585,8 +585,8 @@ module SuBridge
     def handle_capture_design(payload)
       output_path = payload["output_path"]
       view_preset = payload["view_preset"]
-      width = payload.fetch("width", 1920)
-      height = payload.fetch("height", 1080)
+      width = payload.fetch("width", 1280)
+      height = payload.fetch("height", 720)
 
       raise ::SuBridge::UndoManager::ValidationError, "output_path required" unless output_path
 

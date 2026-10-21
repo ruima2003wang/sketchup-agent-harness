@@ -1647,13 +1647,13 @@
     },
     {
       "id": "toilet_floor_mounted_basic",
-      "name": "Basic floor-mounted toilet",
+      "name": "Floor-mounted toilet (real component, 400x700x800)",
       "category": "fixture",
       "subcategory": "toilet",
       "dimensions": {
-        "width": 380,
+        "width": 400,
         "depth": 700,
-        "height": 760
+        "height": 800
       },
       "bounds": {
         "min": [
@@ -1662,19 +1662,19 @@
           0
         ],
         "max": [
-          380,
+          400,
           700,
-          760
+          800
         ]
       },
       "insertion_point": {
         "offset": [
-          190,
-          0,
+          200,
+          700,
           0
         ],
         "description": "Back center on floor",
-        "face_direction": "+y"
+        "face_direction": "-y"
       },
       "anchors": {
         "back": "wall",
@@ -1716,12 +1716,12 @@
     },
     {
       "id": "vanity_wall_600",
-      "name": "Wall vanity 600 mm",
+      "name": "Wall vanity with basin and faucet (real component, 600x480x850)",
       "category": "fixture",
       "subcategory": "vanity",
       "dimensions": {
         "width": 600,
-        "depth": 460,
+        "depth": 480,
         "height": 850
       },
       "bounds": {
@@ -1732,18 +1732,18 @@
         ],
         "max": [
           600,
-          460,
+          480,
           850
         ]
       },
       "insertion_point": {
         "offset": [
           300,
-          0,
+          480,
           0
         ],
         "description": "Back center on floor",
-        "face_direction": "+y"
+        "face_direction": "-y"
       },
       "anchors": {
         "back": "wall",
@@ -1785,13 +1785,13 @@
     },
     {
       "id": "mirror_wall_500",
-      "name": "Wall mirror 500 mm",
+      "name": "Wall mirror with metal frame (real component, 960x50x960)",
       "category": "fixture",
       "subcategory": "mirror",
       "dimensions": {
-        "width": 500,
-        "depth": 40,
-        "height": 700
+        "width": 960,
+        "depth": 50,
+        "height": 960
       },
       "bounds": {
         "min": [
@@ -1800,19 +1800,19 @@
           0
         ],
         "max": [
-          500,
-          40,
-          700
+          960,
+          50,
+          960
         ]
       },
       "insertion_point": {
         "offset": [
-          250,
-          0,
-          350
+          480,
+          50,
+          480
         ],
         "description": "Back center at mirror center height",
-        "face_direction": "+y"
+        "face_direction": "-y"
       },
       "anchors": {
         "back": "wall",
@@ -1848,12 +1848,12 @@
     },
     {
       "id": "bathroom_door_700",
-      "name": "Bathroom door 700 mm",
+      "name": "Bathroom aluminium door with glass panel (real component, 800x130x2100)",
       "category": "opening",
       "subcategory": "door",
       "dimensions": {
-        "width": 700,
-        "depth": 40,
+        "width": 800,
+        "depth": 130,
         "height": 2100
       },
       "bounds": {
@@ -1863,14 +1863,14 @@
           0
         ],
         "max": [
-          700,
-          40,
+          130,
+          800,
           2100
         ]
       },
       "insertion_point": {
         "offset": [
-          0,
+          65,
           0,
           0
         ],
@@ -1915,13 +1915,13 @@
     },
     {
       "id": "ceiling_light_basic",
-      "name": "Basic ceiling light",
+      "name": "Recessed ceiling downlight (real component, 135x135x108)",
       "category": "lighting",
       "subcategory": "light",
       "dimensions": {
-        "width": 300,
-        "depth": 300,
-        "height": 80
+        "width": 135,
+        "depth": 135,
+        "height": 108
       },
       "bounds": {
         "min": [
@@ -1930,16 +1930,16 @@
           0
         ],
         "max": [
-          300,
-          300,
-          80
+          135,
+          135,
+          108
         ]
       },
       "insertion_point": {
         "offset": [
-          150,
-          150,
-          80
+          67,
+          67,
+          108
         ],
         "description": "Top center at ceiling",
         "face_direction": "-z"
